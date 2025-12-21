@@ -1,7 +1,28 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { AppMode, Message } from '../types';
-import { Send, Mic, Volume2, Loader2, Square, Target, MapPin, Coffee, Utensils, ShoppingBag, Sparkles, LogOut, Image as ImageIcon, X } from 'lucide-react';
+import { 
+  Send, 
+  Mic, 
+  Volume2, 
+  Loader2, 
+  Square, 
+  Target, 
+  MapPin, 
+  Coffee, 
+  Utensils, 
+  ShoppingBag, 
+  Sparkles, 
+  LogOut, 
+  Image as ImageIcon, 
+  X,
+  ShoppingBasket,
+  Music,
+  Users,
+  Beer,
+  ChevronDown,
+  ChevronUp
+} from 'lucide-react';
 import { generateChatResponse, textToSpeech, transcribeAudio, decodeAudioData } from '../services/geminiService';
 
 interface ChatViewProps {
@@ -18,6 +39,10 @@ const SCENARIO_STARTERS = [
   { id: 'directions', label: 'Directions', icon: <MapPin size={16} />, prompt: "I'm lost in the city. Can you help me practice asking for directions? I'll start." },
   { id: 'padaria', label: 'Bakery', icon: <Coffee size={16} />, prompt: "Let's roleplay at a traditional Brazilian Padaria. You are the atendente." },
   { id: 'shopping', label: 'Shopping', icon: <ShoppingBag size={16} />, prompt: "I want to practice shopping for clothes at a mall. You are the salesperson." },
+  { id: 'supermarket', label: 'Supermarket', icon: <ShoppingBasket size={16} />, prompt: "Quero praticar fazer compras no supermercado. Você é o caixa e eu sou o cliente buscando alguns itens." },
+  { id: 'party', label: 'Party Chat', icon: <Music size={16} />, prompt: "Vamos praticar conversa em uma festa de aniversário. Estamos na Vila Madalena. Você começa o papo?" },
+  { id: 'meeting', label: 'Work Meeting', icon: <Users size={16} />, prompt: "Iwry, vamos simular o início de uma reunião de trabalho (quebra-gelo) com colegas brasileiros em São Paulo." },
+  { id: 'bar', label: 'Happy Hour', icon: <Beer size={16} />, prompt: "Quero praticar pedir petiscos e drinks em um barzinho de happy hour em Pinheiros. Você é o garçom." },
 ];
 
 const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, memories, selectedTopics, onFinish }) => {
@@ -26,6 +51,8 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, memor
   const [isRecording, setIsRecording] = useState(false);
   const [audioLoading, setAudioLoading] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isStartersExpanded, setIsStartersExpanded] = useState(false);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -139,6 +166,8 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, memor
     }
   };
 
+  const visibleStarters = isStartersExpanded ? SCENARIO_STARTERS : SCENARIO_STARTERS.slice(0, 4);
+
   return (
     <div className="flex flex-col h-full bg-slate-50 relative overflow-hidden">
       {/* Header Overlay */}
@@ -173,7 +202,7 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, memor
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto pt-14 pb-28 px-4 sm:px-8 space-y-4 sm:space-y-6">
+      <div className="flex-1 overflow-y-auto pt-14 pb-48 px-4 sm:px-8 space-y-4 sm:space-y-6">
         {messages.length < 2 && !loading && (
           <div className="py-12 space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
             <div className="text-center space-y-3">
@@ -185,19 +214,31 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, memor
                 Escolha um cenário profissional ou casual para praticar seu Português hoje.
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
-              {SCENARIO_STARTERS.map((scenario) => (
-                <button
-                  key={scenario.id}
-                  onClick={() => handleSend(scenario.prompt)}
-                  className="bg-white border border-slate-200 p-5 rounded-[2rem] flex flex-col items-center gap-3 hover:border-emerald-500 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all text-center group active:scale-95"
-                >
-                  <div className="p-3 bg-slate-50 text-slate-400 group-hover:bg-emerald-50 group-hover:text-emerald-600 rounded-2xl transition-colors shadow-sm">
-                    {scenario.icon}
-                  </div>
-                  <span className="text-xs font-black text-slate-700 uppercase tracking-tight">{scenario.label}</span>
-                </button>
-              ))}
+            <div className="max-w-md mx-auto space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                {visibleStarters.map((scenario) => (
+                  <button
+                    key={scenario.id}
+                    onClick={() => handleSend(scenario.prompt)}
+                    className="bg-white border border-slate-200 p-5 rounded-[2rem] flex flex-col items-center gap-3 hover:border-emerald-500 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all text-center group active:scale-95 animate-in zoom-in-90 duration-300"
+                  >
+                    <div className="p-3 bg-slate-50 text-slate-400 group-hover:bg-emerald-50 group-hover:text-emerald-600 rounded-2xl transition-colors shadow-sm">
+                      {scenario.icon}
+                    </div>
+                    <span className="text-xs font-black text-slate-700 uppercase tracking-tight">{scenario.label}</span>
+                  </button>
+                ))}
+              </div>
+              <button 
+                onClick={() => setIsStartersExpanded(!isStartersExpanded)}
+                className="w-full py-3 flex items-center justify-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest hover:text-emerald-600 transition-colors group"
+              >
+                {isStartersExpanded ? (
+                  <><ChevronUp size={14} className="group-hover:-translate-y-0.5 transition-transform" /> Ver menos</>
+                ) : (
+                  <><ChevronDown size={14} className="group-hover:translate-y-0.5 transition-transform" /> Ver mais cenários</>
+                )}
+              </button>
             </div>
           </div>
         )}
