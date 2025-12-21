@@ -1,14 +1,24 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { UserProgress, AppMode, VocabItem } from '../types';
-import { RefreshCw, AlertTriangle, BookOpen, ChevronRight, Sparkles, Brain } from 'lucide-react';
+import { RefreshCw, AlertTriangle, BookOpen, ChevronRight, Sparkles, Brain, Info, HelpCircle } from 'lucide-react';
 
 interface ReviewSessionViewProps {
   progress: UserProgress;
   onStartReview: (prompt: string) => void;
 }
 
+const GRAMMAR_RULES: Record<string, string> = {
+  'Present Tense': 'Regular verbs: -AR (falo), -ER (como), -IR (abro). Irregular favorites: Ser (sou), Estar (estou), Ir (vou).',
+  'Future Tense': 'Commonly formed by Ir + Infinitive (Eu vou falar). The formal future ends in -rei (Falarei), but it is rarely heard in speech.',
+  'Subjunctive': 'Expresses uncertainty or hope. Triggered by words like "que" or "se". Present: "Que você tenha sorte." Future: "Se eu tiver tempo."',
+  'Prepositions': 'A (to), De (from/of), Em (in/on). Contract with articles: Em + A = Na, De + O = Do. Remember: "Vou ao banco" (I go to the bank).',
+  'Pronouns': 'Brazilians use "Você" mostly. Object pronouns like "me/te/se" often shift placement in casual speech (Me ajuda!).'
+};
+
 const ReviewSessionView: React.FC<ReviewSessionViewProps> = ({ progress, onStartReview }) => {
+  const [activeGrammarTip, setActiveGrammarTip] = useState<string | null>(null);
+
   const weakVocab = progress.vocabulary
     .filter(v => v.confidence < 60)
     .sort((a, b) => a.confidence - b.confidence)
@@ -74,16 +84,31 @@ const ReviewSessionView: React.FC<ReviewSessionViewProps> = ({ progress, onStart
                 <Brain size={20} />
                 <h3 className="font-bold text-lg">Grammar Gaps</h3>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {weakGrammar.map(([name, mastery]) => (
-                  <div key={name} className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-slate-700">{name}</span>
-                    <div className="flex items-center gap-2">
-                      <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-emerald-500" style={{ width: `${(mastery as number) * 100}%` }} />
+                  <div key={name} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-slate-700">{name}</span>
+                        <button 
+                          onClick={() => setActiveGrammarTip(activeGrammarTip === name ? null : name)}
+                          className={`p-1 rounded-full transition-colors ${activeGrammarTip === name ? 'bg-emerald-100 text-emerald-600' : 'text-slate-300 hover:text-emerald-500'}`}
+                        >
+                          <HelpCircle size={14} />
+                        </button>
                       </div>
-                      <span className="text-[10px] font-bold text-slate-400">{Math.round((mastery as number) * 100)}%</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                          <div className="h-full bg-emerald-500" style={{ width: `${(mastery as number) * 100}%` }} />
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-400">{Math.round((mastery as number) * 100)}%</span>
+                      </div>
                     </div>
+                    {activeGrammarTip === name && GRAMMAR_RULES[name] && (
+                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-[11px] text-slate-600 leading-relaxed italic animate-in slide-in-from-top-1 duration-200">
+                        {GRAMMAR_RULES[name]}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

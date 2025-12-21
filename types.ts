@@ -59,6 +59,7 @@ export interface LessonSubModule {
   title: string;
   description: string;
   prompt: string;
+  grammarExplanation?: string;
 }
 
 export interface LessonModule {

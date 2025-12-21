@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, BookOpen, Briefcase, Globe, Users, Plane, GraduationCap } from 'lucide-react';
+import { ChevronLeft, ChevronRight, BookOpen, Briefcase, Globe, Users, Plane, GraduationCap, Info } from 'lucide-react';
 import { LessonModule, LessonSubModule } from '../types';
 
 const MODULES: LessonModule[] = [
@@ -10,10 +10,34 @@ const MODULES: LessonModule[] = [
     icon: 'Briefcase',
     description: 'Master innovation consulting and business etiquette in SP.',
     submodules: [
-      { id: 'p1', title: 'Strategic Presentations', description: 'Pitching complex ideas to Brazilian stakeholders.', prompt: 'Let\'s practice a strategic presentation. I am a Brazilian partner, and you are pitching a new innovation framework. Start by greeting me formally.' },
-      { id: 'p2', title: 'Networking with Partners', description: 'Small talk that builds real trust in a professional setting.', prompt: 'We are at a business coffee in Faria Lima. Let\'s practice professional networking. How do you start the conversation?' },
-      { id: 'p3', title: 'Feedback & Reviews', description: 'The Brazilian way of giving "feedback construtivo".', prompt: 'I am your colleague and I just finished a project. Give me constructive feedback in a warm but professional Brazilian way.' },
-      { id: 'p4', title: 'Difficult Negotiations', description: 'Handling pushback and finding common ground.', prompt: 'We are negotiating a deadline. I am pushing for sooner, you need more time. Let\'s find a middle ground in Portuguese.' }
+      { 
+        id: 'p1', 
+        title: 'Strategic Presentations', 
+        description: 'Pitching complex ideas to Brazilian stakeholders.', 
+        prompt: 'Let\'s practice a strategic presentation. I am a Brazilian partner, and you are pitching a new innovation framework. Start by greeting me formally.',
+        grammarExplanation: 'In professional SP, use "Você" rather than "Tu". When presenting, use the Future Tense (ir + infinitive) like "Nós vamos implementar..." for a proactive tone.'
+      },
+      { 
+        id: 'p2', 
+        title: 'Networking with Partners', 
+        description: 'Small talk that builds real trust in a professional setting.', 
+        prompt: 'We are at a business coffee in Faria Lima. Let\'s practice professional networking. How do you start the conversation?',
+        grammarExplanation: 'Brazilians often use "Pois não?" to be helpful or "Fique à vontade" to make you comfortable. Use "Gostaria de..." (Conditional) to express wishes politely.'
+      },
+      { 
+        id: 'p3', 
+        title: 'Feedback & Reviews', 
+        description: 'The Brazilian way of giving "feedback construtivo".', 
+        prompt: 'I am your colleague and I just finished a project. Give me constructive feedback in a warm but professional Brazilian way.',
+        grammarExplanation: 'Diminutives like "probleminha" soften feedback. Use "Acho que..." followed by the Subjunctive to sound less aggressive: "Acho que seja melhor..."'
+      },
+      { 
+        id: 'p4', 
+        title: 'Difficult Negotiations', 
+        description: 'Handling pushback and finding common ground.', 
+        prompt: 'We are negotiating a deadline. I am pushing for sooner, you need more time. Let\'s find a middle ground in Portuguese.',
+        grammarExplanation: 'Use the "Imperfeito do Indicativo" for politeness: "Eu queria (not quero) pedir um prazo maior." It sounds like "I was wondering if I could ask..."'
+      }
     ]
   },
   {
@@ -22,10 +46,34 @@ const MODULES: LessonModule[] = [
     icon: 'Globe',
     description: 'Navigate the nuances between Rio and São Paulo.',
     submodules: [
-      { id: 'r1', title: 'Rio: Beach to Boardroom', description: 'Understanding the Carioca pace and informal professional blend.', prompt: 'Scenario: Meeting a Carioca client near Ipanema. Practice the shift from informal chat to business.' },
-      { id: 'r2', title: 'SP: Business Speed', description: 'The fast-paced, direct style of the Paulistano corporate world.', prompt: 'Scenario: A quick, efficient 15-minute sync in a São Paulo office. Be direct but polite.' },
-      { id: 'r3', title: 'Decoding Regional Slang', description: 'When to use "uai", "bah", "meu", or "mermão".', prompt: 'Teach me about regional slang today. Start by explaining the difference between SP "meu" and Rio "cara".' },
-      { id: 'r4', title: 'National Identity', description: 'Cultural touchstones that every Brazilian knows.', prompt: 'Let\'s talk about Brazilian cultural icons today. Who are some figures Chandler should know for social contexts?' }
+      { 
+        id: 'r1', 
+        title: 'Rio: Beach to Boardroom', 
+        description: 'Understanding the Carioca pace and informal professional blend.', 
+        prompt: 'Scenario: Meeting a Carioca client near Ipanema. Practice the shift from informal chat to business.',
+        grammarExplanation: 'Cariocas use "Tu" often, usually with the 3rd person conjugation (Tu fala). Use "Cara" and "Mermão" as casual fillers between points.'
+      },
+      { 
+        id: 'r2', 
+        title: 'SP: Business Speed', 
+        description: 'The fast-paced, direct style of the Paulistano corporate world.', 
+        prompt: 'Scenario: A quick, efficient 15-minute sync in a São Paulo office. Be direct but polite.',
+        grammarExplanation: 'Paulistanos love the word "Meu". In SP, "Você" is almost universal. Grammar is usually more aligned with formal standards in writing but fast in speech.'
+      },
+      { 
+        id: 'r3', 
+        title: 'Decoding Regional Slang', 
+        description: 'When to use "uai", "bah", "meu", or "mermão".', 
+        prompt: 'Teach me about regional slang today. Start by explaining the difference between SP "meu" and Rio "cara".',
+        grammarExplanation: 'Slang often functions as punctuation. "Bah" (RS) expresses surprise, while "Uai" (MG) is for hesitation or emphasis at the end of a thought.'
+      },
+      { 
+        id: 'r4', 
+        title: 'National Identity', 
+        description: 'Cultural touchstones that every Brazilian knows.', 
+        prompt: 'Let\'s talk about Brazilian cultural icons today. Who are some figures Chandler should know for social contexts?',
+        grammarExplanation: 'Reference "Jeitinho Brasileiro" using the personal infinitive: "Para nós resolvermos isso..." rather than a standard infinitive.'
+      }
     ]
   },
   {
@@ -34,10 +82,34 @@ const MODULES: LessonModule[] = [
     icon: 'GraduationCap',
     description: 'Grammar that actually helps you communicate better.',
     submodules: [
-      { id: 'g1', title: 'The Subjunctive Mood', description: 'Mastering "If I were..." and "When I have...".', prompt: 'Let\'s drill the subjunctive. Give me scenarios where I have to express doubt, wishes, or possibilities.' },
-      { id: 'g2', title: 'Future Scenarios', description: 'Talking about project goals and personal plans.', prompt: 'Practice the future tense. Tell me about your goals for the next 6 months in innovation consulting.' },
-      { id: 'g3', title: 'Pronouns in Speech', description: 'Using object pronouns like a native, not a textbook.', prompt: 'Let\'s practice using "lo", "la", and "lhe" naturally, or when to just drop them like Brazilians do.' },
-      { id: 'g4', title: 'Prepositions & Contractions', description: 'Never trip over "no", "na", "ao", or "pelo" again.', prompt: 'Give me a quiz on prepositions and contractions in the context of describing a city.' }
+      { 
+        id: 'g1', 
+        title: 'The Subjunctive Mood', 
+        description: 'Mastering "If I were..." and "When I have...".', 
+        prompt: 'Let\'s drill the subjunctive. Give me scenarios where I have to express doubt, wishes, or possibilities.',
+        grammarExplanation: 'Present Subjunctive: used after "que" when expressing feelings. Ex: "Espero que você tenha (not tem) sucesso." It reflects subjective reality.'
+      },
+      { 
+        id: 'g2', 
+        title: 'Future Scenarios', 
+        description: 'Talking about project goals and personal plans.', 
+        prompt: 'Practice the future tense. Tell me about your goals for the next 6 months in innovation consulting.',
+        grammarExplanation: 'The Future Subjunctive is vital for "if/when" future conditions: "Se eu tiver (not tenho) tempo, eu vou." Note: Tiver comes from Ter.'
+      },
+      { 
+        id: 'g3', 
+        title: 'Pronouns in Speech', 
+        description: 'Using object pronouns like a native, not a textbook.', 
+        prompt: 'Let\'s practice using "lo", "la", and "lhe" naturally, or when to just drop them like Brazilians do.',
+        grammarExplanation: 'In speech, Brazilians often skip direct objects: "Eu vi (ele)" instead of "Eu o vi". "Lhe" is replaced by "para você" in most casual SP/Rio contexts.'
+      },
+      { 
+        id: 'g4', 
+        title: 'Prepositions & Contractions', 
+        description: 'Never trip over "no", "na", "ao", or "pelo" again.', 
+        prompt: 'Give me a quiz on prepositions and contractions in the context of describing a city.',
+        grammarExplanation: 'A + O = AO. EM + A = NA. DE + O = DO. Movement to a place: use "A" (Vou à praia) for short visits and "Para" (Vou para casa) for staying longer.'
+      }
     ]
   },
   {
@@ -46,10 +118,34 @@ const MODULES: LessonModule[] = [
     icon: 'Users',
     description: 'Integration into Brazilian social circles and groups.',
     submodules: [
-      { id: 's1', title: 'Churrasco Etiquette', description: 'Navigating the most important social event in Brazil.', prompt: 'I invited you to a churrasco! How do you arrive, what do you say to the host, and how do you join the group?' },
-      { id: 's2', title: 'WhatsApp Group Dynamics', description: 'Mastering emojis, stickers, and "áudios".', prompt: 'Simulate a WhatsApp group chat for planning a weekend trip. Use slang and stickers (emojis).' },
-      { id: 's3', title: 'Brazilian Sarcasm', description: 'Understanding humor and not taking things too literally.', prompt: 'Tell me a Brazilian joke or explain how sarcasm works in SP business culture.' },
-      { id: 's4', title: 'Making Real Friends', description: 'Moving from "conhecido" to "amigo".', prompt: 'Let\'s practice a casual catch-up between friends. How do you ask about someone\'s family and life warmly?' }
+      { 
+        id: 's1', 
+        title: 'Churrasco Etiquette', 
+        description: 'Navigating the most important social event in Brazil.', 
+        prompt: 'I invited you to a churrasco! How do you arrive, what do you say to the host, and how do you join the group?',
+        grammarExplanation: 'Use "A gente" instead of "Nós" to sound like a local. It takes 3rd person singular: "A gente vai" (We go).'
+      },
+      { 
+        id: 's2', 
+        title: 'WhatsApp Group Dynamics', 
+        description: 'Mastering emojis, stickers, and "áudios".', 
+        prompt: 'Simulate a WhatsApp group chat for planning a weekend trip. Use slang and stickers (emojis).',
+        grammarExplanation: 'Abbreviate: vc (você), tb (também), pq (porque), blz (beleza). Use "kkk" or "rsrs" for laughing.'
+      },
+      { 
+        id: 's3', 
+        title: 'Brazilian Sarcasm', 
+        description: 'Understanding humor and not taking things too literally.', 
+        prompt: 'Tell me a Brazilian joke or explain how sarcasm works in SP business culture.',
+        grammarExplanation: 'Sarcasm often uses "Só que não" (SQN) at the end of a sentence to negate the entire previous statement.'
+      },
+      { 
+        id: 's4', 
+        title: 'Making Real Friends', 
+        description: 'Moving from "conhecido" to "amigo".', 
+        prompt: 'Let\'s practice a casual catch-up between friends. How do you ask about someone\'s family and life warmly?',
+        grammarExplanation: 'Ask "Como estão as coisas?" (How are things?). Use the verb "ficar" to describe changes in emotion or state: "Fiquei feliz por você."'
+      }
     ]
   },
   {
@@ -58,10 +154,34 @@ const MODULES: LessonModule[] = [
     icon: 'Plane',
     description: 'High-end travel and day-to-day luxury services.',
     submodules: [
-      { id: 't1', title: 'Gourmet Dining', description: 'Ordering at top-tier restaurants and handling service.', prompt: 'We are at a high-end restaurant in Jardins. Practice ordering and asking for recommendations.' },
-      { id: 't2', title: 'Luxury Accommodations', description: 'Checking in and requesting specific amenities.', prompt: 'You are checking into a boutique hotel in Trancoso. Request a room with a view and ask about local tours.' },
-      { id: 't3', title: 'Navigating Logistics', description: 'Talking to private drivers and airport staff.', prompt: 'Scenario: Your private driver is late. Practice calling them and discussing the traffic/route politely.' },
-      { id: 't4', title: 'Shopping Manners', description: 'From boutiques in Oscar Freire to local markets.', prompt: 'Practice shopping for a gift. Ask about materials, sizes, and if there is a "desconto à vista".' }
+      { 
+        id: 't1', 
+        title: 'Gourmet Dining', 
+        description: 'Ordering at top-tier restaurants and handling service.', 
+        prompt: 'We are at a high-end restaurant in Jardins. Practice ordering and asking for recommendations.',
+        grammarExplanation: 'When ordering, say "Eu vou querer..." or "Pode me trazer...". Avoid direct imperatives like "Me dá".'
+      },
+      { 
+        id: 't2', 
+        title: 'Luxury Accommodations', 
+        description: 'Checking in and requesting specific amenities.', 
+        prompt: 'You are checking into a boutique hotel in Trancoso. Request a room with a view and ask about local tours.',
+        grammarExplanation: 'Use "Será que..." to ask questions tentatively: "Será que tem um quarto disponível?" (I wonder if there is...).'
+      },
+      { 
+        id: 't3', 
+        title: 'Navigating Logistics', 
+        description: 'Talking to private drivers and airport staff.', 
+        prompt: 'Scenario: Your private driver is late. Practice calling them and discussing the traffic/route politely.',
+        grammarExplanation: 'Gerunds: In Brazil, use "-ndo" (Estou chegando). Avoid the Portuguese "-a" style (Estou a chegar).'
+      },
+      { 
+        id: 't4', 
+        title: 'Shopping Manners', 
+        description: 'From boutiques in Oscar Freire to local markets.', 
+        prompt: 'Practice shopping for a gift. Ask about materials, sizes, and if there is a "desconto à vista".',
+        grammarExplanation: 'Brazilians always ask for "desconto". Use "Quanto sai?" or "Dá pra melhorar o preço?" to negotiate.'
+      }
     ]
   },
   {
@@ -70,10 +190,34 @@ const MODULES: LessonModule[] = [
     icon: 'BookOpen',
     description: 'The unwritten rules of working in Brazil.',
     submodules: [
-      { id: 'w1', title: 'Hierarchies & Power', description: 'How to address leadership vs. peers.', prompt: 'Explain the difference in addressing a "Diretor" vs. a "Coordenador" in a large Brazilian company.' },
-      { id: 'w2', title: 'Work/Life Integration', description: 'Understanding "cafezinho" and long lunches.', prompt: 'Let\'s have a "cafezinho" chat. Practice the 10 minutes of social talk before a meeting starts.' },
-      { id: 'w3', title: 'Holiday Norms', description: 'Carnaval, June Festivals, and office closures.', prompt: 'Discuss the impact of Carnaval on a project timeline. How do you negotiate this with a client?' },
-      { id: 'w4', title: 'Tech & Innovation', description: 'Vocabulary for the Brazilian start-up scene.', prompt: 'Let\'s talk about "Unicórnios" and the Brazilian fintech scene. Teach me the specific jargon used here.' }
+      { 
+        id: 'w1', 
+        title: 'Hierarchies & Power', 
+        description: 'How to address leadership vs. peers.', 
+        prompt: 'Explain the difference in addressing a "Diretor" vs. a "Coordenador" in a large Brazilian company.',
+        grammarExplanation: 'Address bosses as "O senhor" / "A senhora" until they invite you to use "você". Use titles (Dr., Eng.) if the culture is traditional.'
+      },
+      { 
+        id: 'w2', 
+        title: 'Work/Life Integration', 
+        description: 'Understanding "cafezinho" and long lunches.', 
+        prompt: 'Let\'s have a "cafezinho" chat. Practice the 10 minutes of social talk before a meeting starts.',
+        grammarExplanation: '"Bater um papo" means to have a chat. "Tomar um café" is often a metaphor for a meeting that could be social or professional.'
+      },
+      { 
+        id: 'w3', 
+        title: 'Holiday Norms', 
+        description: 'Carnaval, June Festivals, and office closures.', 
+        prompt: 'Discuss the impact of Carnaval on a project timeline. How do you negotiate this with a client?',
+        grammarExplanation: '"Folga" is a day off. "Feriado prolongado" or "Ponte" refers to bridging a holiday with a weekend.'
+      },
+      { 
+        id: 'w4', 
+        title: 'Tech & Innovation', 
+        description: 'Vocabulary for the Brazilian start-up scene.', 
+        prompt: 'Let\'s talk about "Unicórnios" and the Brazilian fintech scene. Teach me the specific jargon used here.',
+        grammarExplanation: 'Brazilians use many English loanwords in tech (start-up, mindset, budget) but pronounce them with a distinct accent (start-úpi).'
+      }
     ]
   }
 ];
@@ -119,21 +263,36 @@ const LessonsView: React.FC<LessonsViewProps> = ({ onStartLesson }) => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {selectedModule.submodules.map((sub) => (
-              <button
+              <div
                 key={sub.id}
-                onClick={() => onStartLesson(sub.prompt)}
                 className="group p-6 bg-white border border-slate-200 rounded-3xl text-left hover:border-emerald-500 hover:shadow-xl hover:shadow-emerald-500/5 transition-all flex flex-col justify-between"
               >
                 <div>
                   <h3 className="font-bold text-lg text-slate-800 group-hover:text-emerald-600 mb-2">{sub.title}</h3>
-                  <p className="text-sm text-slate-500 leading-relaxed">{sub.description}</p>
+                  <p className="text-sm text-slate-500 leading-relaxed mb-4">{sub.description}</p>
+                  
+                  {sub.grammarExplanation && (
+                    <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100 mb-6">
+                      <div className="flex items-center gap-2 text-emerald-700 mb-2">
+                        <Info size={14} className="shrink-0" />
+                        <span className="text-[11px] font-bold uppercase tracking-wider">Grammar Snapshot</span>
+                      </div>
+                      <p className="text-xs text-emerald-800/80 leading-relaxed italic">
+                        {sub.grammarExplanation}
+                      </p>
+                    </div>
+                  )}
                 </div>
-                <div className="mt-6 flex items-center gap-2 text-xs font-bold text-emerald-600 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
-                  Start Lesson <ChevronRight size={14} />
-                </div>
-              </button>
+                
+                <button
+                  onClick={() => onStartLesson(sub.prompt)}
+                  className="w-full bg-slate-100 group-hover:bg-emerald-600 group-hover:text-white text-slate-500 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                >
+                  Launch Practice <ChevronRight size={14} />
+                </button>
+              </div>
             ))}
           </div>
         </div>
