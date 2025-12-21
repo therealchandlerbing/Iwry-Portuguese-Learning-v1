@@ -144,14 +144,14 @@ const App: React.FC = () => {
     addMessage(msg);
 
     if (msg.role === 'user' && (mode === AppMode.CHAT || mode === AppMode.LIVE_VOICE || mode === AppMode.TEXT_MODE)) {
-      const correctionResult = await checkGrammar(msg.content, progress.difficulty);
-      if (correctionResult.hasError) {
+      const result = await checkGrammar(msg.content, progress.difficulty);
+      if (result && result.hasError) {
         const correctionObj: CorrectionObject = {
           id: Math.random().toString(36).substr(2, 9),
           incorrect: msg.content,
-          corrected: correctionResult.corrected,
-          explanation: correctionResult.explanation,
-          category: correctionResult.category,
+          corrected: result.corrected,
+          explanation: result.explanation,
+          category: result.category,
           difficulty: progress.difficulty,
           timestamp: new Date()
         };
@@ -163,7 +163,7 @@ const App: React.FC = () => {
 
         addMessage({
           role: 'assistant',
-          content: `💡 Coach Tip: For your last input, the best way to say it is: "${correctionResult.corrected}". ${correctionResult.explanation}`,
+          content: `💡 Coach Tip: Try saying "${result.corrected}". ${result.explanation}`,
           isCorrection: true,
           correctionData: correctionObj
         });

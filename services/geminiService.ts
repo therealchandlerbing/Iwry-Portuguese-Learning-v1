@@ -15,6 +15,7 @@ export async function checkGrammar(text: string, difficulty: DifficultyLevel): P
     config: {
       systemInstruction: SYSTEM_INSTRUCTIONS.CORRECTION_ENGINE,
       responseMimeType: "application/json",
+      thinkingConfig: { thinkingBudget: 0 }, // Disable thinking to prevent verbose reasoning
       responseSchema: {
         type: Type.OBJECT,
         properties: {
@@ -23,14 +24,19 @@ export async function checkGrammar(text: string, difficulty: DifficultyLevel): P
           explanation: { type: Type.STRING },
           category: { type: Type.STRING }
         },
-        required: ["hasError"]
+        required: ["hasError", "corrected", "explanation", "category"]
       }
     }
   });
 
   try {
-    return JSON.parse(response.text || '{"hasError": false}');
+    // Clean up response text to find the actual JSON block in case of leakage
+    const text = response.text || "";
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    const jsonStr = jsonMatch ? jsonMatch[0] : text;
+    return JSON.parse(jsonStr || '{"hasError": false}');
   } catch (e) {
+    console.warn("Grammar check failed to parse JSON:", response.text);
     return { hasError: false };
   }
 }
@@ -55,6 +61,7 @@ export async function analyzeMemory(content: string, isImage: boolean = false): 
     config: {
       systemInstruction: SYSTEM_INSTRUCTIONS.IMPORT_ANALYSIS,
       responseMimeType: "application/json",
+      thinkingConfig: { thinkingBudget: 0 },
       responseSchema: {
         type: Type.OBJECT,
         properties: {
@@ -92,6 +99,7 @@ export async function analyzeSession(history: { role: string; content: string }[
       The grammarPerformance map should use keys like "Present Tense", "Future Tense", "Subjunctive", "Prepositions", or "Pronouns".
       Scores should be small adjustments: e.g., 0.05 for good usage, -0.05 for struggle.`,
       responseMimeType: "application/json",
+      thinkingConfig: { thinkingBudget: 0 },
       responseSchema: {
         type: Type.OBJECT,
         properties: {
@@ -135,12 +143,15 @@ export async function generateQuiz(topicTitle: string, description: string): Pro
     config: {
       systemInstruction: SYSTEM_INSTRUCTIONS.QUIZ_GENERATOR,
       responseMimeType: "application/json",
+      thinkingConfig: { thinkingBudget: 0 }
     }
   });
 
   try {
-    const parsed = JSON.parse(response.text || '{"questions": []}');
-    return parsed.questions;
+    const text = response.text || '{"questions": []}';
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : text);
+    return parsed.questions || [];
   } catch (e) {
     console.error("Failed to parse quiz", e);
     return [];
@@ -151,13 +162,12 @@ export async function generateCustomModule(request: string): Promise<LessonModul
   const ai = getGeminiClient();
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
-    contents: [{ role: 'user', parts: [{ text: `Create a custom Portuguese learning module for the following request: "${request}". 
+    contents: [{ role: 'user', parts: [{ text: `Create a custom Portuguese learning module for: "${request}". 
     It must include 2 submodules. Each submodule needs learning milestones and a 3-question unit test.` }] }],
     config: {
       systemInstruction: `You are a curriculum designer for Iwry, a Brazilian Portuguese tutor. 
       Generate a LessonModule object in JSON. 
-      Include 'title', 'icon' (pick from Briefcase, Globe, GraduationCap, Users, Plane, BookOpen, Coffee, MapPin), 'description', and 'submodules'.
-      Each submodule needs 'id', 'title', 'description', 'prompt' (to start a chat), 'grammarExplanation', 'milestones' (array of strings), and 'unitTest' (array of 3 QuizQuestion objects).`,
+      Include 'title', 'icon', 'description', and 'submodules'.`,
       responseMimeType: "application/json",
       thinkingConfig: { thinkingBudget: 16000 }
     }
@@ -187,20 +197,20 @@ export async function generateChatResponse(
   }));
   
   const beginnerTranslationRule = difficulty === DifficultyLevel.BEGINNER 
-    ? "\nCRITICAL RULE: Since difficulty is BEGINNER, you MUST provide every Portuguese sentence with its English translation in parentheses immediately after. Example: 'Olá! (Hello!)'. Do not skip this."
+    ? "\nCRITICAL: Always translate Portuguese to English in parentheses. Example: 'Tudo bem? (How are you?)'."
     : "";
 
-  const difficultyContext = `\nUSER CURRENT DIFFICULTY LEVEL: ${difficulty}. Adjust your vocabulary, pacing, and grammatical complexity to match this level perfectly. If beginner, stay simple.${beginnerTranslationRule}`;
+  const difficultyContext = `\n[Level: ${difficulty}${beginnerTranslationRule}]`;
   
   const memoryContext = memories && memories.length > 0 
-    ? `\nRECENT MEMORIES OF CHANDLER'S EXTERNAL STUDY: ${memories.slice(0,3).map(m => m.topic).join(', ')}`
+    ? `\n[Recent context: ${memories.slice(0,3).map(m => m.topic).join(', ')}]`
     : "";
 
   const focusContext = selectedTopics && selectedTopics.length > 0
-    ? `\nCURRENT TARGETED FOCUS AREAS: ${selectedTopics.join(', ')}. Try to incorporate vocabulary and scenarios related to these topics naturally.`
+    ? `\n[Focus topics: ${selectedTopics.join(', ')}]`
     : "";
 
-  const coachingContext = "\nCOACHING ROLE: You are Chandler's coach. If the user uses English, acknowledge it and teach them how to say it in Portuguese.";
+  const coachingContext = "\n[Role: Speak as a human friend/coach. Be natural. NO YAPPING or robot talk.]";
 
   const parts: any[] = [{ text: userInput + difficultyContext + memoryContext + focusContext + coachingContext }];
   if (image) {
@@ -219,11 +229,11 @@ export async function generateChatResponse(
     contents,
     config: {
       systemInstruction: SYSTEM_INSTRUCTIONS[mode] || SYSTEM_INSTRUCTIONS.CHAT,
-      thinkingConfig: { thinkingBudget: 32768 }
+      thinkingConfig: { thinkingBudget: 16000 } // Keep some thinking for quality conversation
     }
   });
 
-  return response.text || "Sorry, I couldn't process that. (Desculpe, não consegui processar isso.)";
+  return response.text || "Desculpe, não consegui processar isso. (Sorry, I couldn't process that.)";
 }
 
 export async function textToSpeech(text: string): Promise<Uint8Array | null> {
@@ -258,7 +268,7 @@ export async function transcribeAudio(audioBase64: string): Promise<string> {
     model: 'gemini-3-flash-preview',
     contents: {
       parts: [
-        { text: "Transcreva este áudio em Português do Brasil ou Inglês. Apenas o texto." },
+        { text: "Transcribe this audio. Only the text." },
         { inlineData: { mimeType: 'audio/wav', data: audioBase64 } }
       ]
     }
