@@ -1,17 +1,59 @@
 
-import { GoogleGenAI, Modality, GenerateContentResponse, LiveServerMessage } from "@google/genai";
+import { GoogleGenAI, Modality, GenerateContentResponse, LiveServerMessage, Type } from "@google/genai";
 import { SYSTEM_INSTRUCTIONS } from "../constants";
 
-// @google/genai guidelines: Use process.env.API_KEY directly in initialization
 export const getGeminiClient = () => {
   return new GoogleGenAI({ apiKey: process.env.API_KEY });
 };
 
-// Text & Reasoning (Chat, Lessons)
+export async function analyzeMemory(content: string, isImage: boolean = false): Promise<any> {
+  const ai = getGeminiClient();
+  const parts: any[] = [{ text: content }];
+  
+  if (isImage) {
+    parts.push({
+      inlineData: {
+        mimeType: 'image/jpeg',
+        data: content.split(',')[1]
+      }
+    });
+    parts[0].text = "Analyze this homework/document image.";
+  }
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: [{ role: 'user', parts }],
+    config: {
+      systemInstruction: SYSTEM_INSTRUCTIONS.IMPORT_ANALYSIS,
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          topic: { type: Type.STRING },
+          vocab: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                word: { type: Type.STRING },
+                meaning: { type: Type.STRING }
+              }
+            }
+          },
+          grammar: { type: Type.STRING }
+        }
+      }
+    }
+  });
+
+  return JSON.parse(response.text || "{}");
+}
+
 export async function generateChatResponse(
   mode: string,
   history: { role: string; content: string }[],
   userInput: string,
+  memories?: any[],
   image?: string
 ): Promise<string> {
   const ai = getGeminiClient();
@@ -20,7 +62,11 @@ export async function generateChatResponse(
     parts: [{ text: h.content }]
   }));
   
-  const parts: any[] = [{ text: userInput }];
+  const memoryContext = memories && memories.length > 0 
+    ? `\nRECENT MEMORIES OF CHANDLER'S EXTERNAL STUDY: ${memories.slice(0,3).map(m => m.topic).join(', ')}`
+    : "";
+
+  const parts: any[] = [{ text: userInput + memoryContext }];
   if (image) {
     parts.push({
       inlineData: {
@@ -32,7 +78,6 @@ export async function generateChatResponse(
 
   contents.push({ role: 'user', parts });
 
-  // @google/genai guidelines: Use ai.models.generateContent directly
   const response: GenerateContentResponse = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
     contents,
@@ -42,11 +87,9 @@ export async function generateChatResponse(
     }
   });
 
-  // @google/genai guidelines: Access .text property directly
   return response.text || "Desculpe, não consegui processar isso.";
 }
 
-// Speech Generation (TTS)
 export async function textToSpeech(text: string): Promise<Uint8Array | null> {
   const ai = getGeminiClient();
   try {
@@ -57,7 +100,6 @@ export async function textToSpeech(text: string): Promise<Uint8Array | null> {
         responseModalities: [Modality.AUDIO],
         speechConfig: {
           voiceConfig: {
-            // Warm, friendly voice
             prebuiltVoiceConfig: { voiceName: 'Kore' }
           }
         }
@@ -74,7 +116,6 @@ export async function textToSpeech(text: string): Promise<Uint8Array | null> {
   return null;
 }
 
-// Audio Transcription (STT)
 export async function transcribeAudio(audioBase64: string): Promise<string> {
   const ai = getGeminiClient();
   const response = await ai.models.generateContent({
@@ -89,7 +130,6 @@ export async function transcribeAudio(audioBase64: string): Promise<string> {
   return response.text || "";
 }
 
-// Live API Helpers - Implement as per guidelines
 export function decode(base64: string): Uint8Array {
   const binaryString = atob(base64);
   const bytes = new Uint8Array(binaryString.length);

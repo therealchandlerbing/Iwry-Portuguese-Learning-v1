@@ -1,12 +1,13 @@
 
 export enum AppMode {
+  DASHBOARD = 'DASHBOARD',
   CHAT = 'CHAT',
   TEXT_MODE = 'TEXT_MODE',
   LIVE_VOICE = 'LIVE_VOICE',
   LESSONS = 'LESSONS',
-  DASHBOARD = 'DASHBOARD',
   QUICK_HELP = 'QUICK_HELP',
-  IMAGE_ANALYSIS = 'IMAGE_ANALYSIS'
+  IMAGE_ANALYSIS = 'IMAGE_ANALYSIS',
+  IMPORT_MEMORY = 'IMPORT_MEMORY'
 }
 
 export interface Message {
@@ -24,14 +25,26 @@ export interface VocabItem {
   meaning: string;
   confidence: number; // 0 to 100
   lastPracticed: Date;
+  source?: string; // e.g., 'Internal', 'External Homework'
+}
+
+export interface MemoryEntry {
+  id: string;
+  date: Date;
+  topic: string;
+  content: string;
+  extractedVocab: string[];
+  type: 'homework' | 'reading' | 'meeting' | 'social';
 }
 
 export interface UserProgress {
-  level: string; // A1, A2, etc.
+  level: string;
   vocabulary: VocabItem[];
   lessonsCompleted: string[];
   grammarMastery: Record<string, number>;
   totalPracticeMinutes: number;
+  memories: MemoryEntry[];
+  streak: number;
 }
 
 export interface Correction {
