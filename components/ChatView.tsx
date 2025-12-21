@@ -335,12 +335,19 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, memor
                 onMouseUp={stopRecording}
                 className={`p-4 rounded-2xl transition-all shadow-lg active:scale-95 ${
                   isRecording 
-                    ? 'bg-red-500 text-white animate-pulse shadow-red-500/20 ring-4 ring-red-500/10' 
+                    ? 'bg-red-50 text-red-500 shadow-red-500/10 ring-4 ring-red-500/5 border-red-200' 
                     : 'bg-white text-slate-500 hover:text-emerald-600 border border-slate-200'
                 }`}
                 aria-label="Gravar áudio"
               >
-                {isRecording ? <Square size={22} /> : <Mic size={22} />}
+                {isRecording ? (
+                  <div className="relative flex items-center justify-center w-[22px] h-[22px]">
+                    <div className="absolute w-3 h-3 bg-red-500 rounded-full animate-ping opacity-75"></div>
+                    <div className="relative w-3 h-3 bg-red-500 rounded-full"></div>
+                  </div>
+                ) : (
+                  <Mic size={22} />
+                )}
               </button>
             </div>
             
