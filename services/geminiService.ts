@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, Modality, GenerateContentResponse, LiveServerMessage, Type } from "@google/genai";
 import { SYSTEM_INSTRUCTIONS } from "../constants";
-import { QuizQuestion, SessionAnalysis, DifficultyLevel, CorrectionObject } from "../types";
+import { QuizQuestion, SessionAnalysis, DifficultyLevel, CorrectionObject, LessonModule } from "../types";
 
 export const getGeminiClient = () => {
   return new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -145,6 +145,30 @@ export async function generateQuiz(topicTitle: string, description: string): Pro
     console.error("Failed to parse quiz", e);
     return [];
   }
+}
+
+export async function generateCustomModule(request: string): Promise<LessonModule> {
+  const ai = getGeminiClient();
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-pro-preview',
+    contents: [{ role: 'user', parts: [{ text: `Create a custom Portuguese learning module for the following request: "${request}". 
+    It must include 2 submodules. Each submodule needs learning milestones and a 3-question unit test.` }] }],
+    config: {
+      systemInstruction: `You are a curriculum designer for Iwry, a Brazilian Portuguese tutor. 
+      Generate a LessonModule object in JSON. 
+      Include 'title', 'icon' (pick from Briefcase, Globe, GraduationCap, Users, Plane, BookOpen, Coffee, MapPin), 'description', and 'submodules'.
+      Each submodule needs 'id', 'title', 'description', 'prompt' (to start a chat), 'grammarExplanation', 'milestones' (array of strings), and 'unitTest' (array of 3 QuizQuestion objects).`,
+      responseMimeType: "application/json",
+      thinkingConfig: { thinkingBudget: 16000 }
+    }
+  });
+
+  const parsed = JSON.parse(response.text || "{}");
+  return {
+    ...parsed,
+    id: `custom_${Date.now()}`,
+    isCustom: true
+  };
 }
 
 export async function generateChatResponse(

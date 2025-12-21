@@ -70,6 +70,7 @@ export interface UserProgress {
   selectedTopics: string[]; 
   lastSessionDate: Date;
   sessionCount: number;
+  generatedModules: LessonModule[]; // New persistent field for AI-created lessons
 }
 
 export interface SessionAnalysis {
@@ -91,6 +92,8 @@ export interface LessonSubModule {
   description: string;
   prompt: string;
   grammarExplanation?: string;
+  milestones?: string[]; // New: Specific learning goals
+  unitTest?: QuizQuestion[]; // New: Embedded test for this specific submodule
 }
 
 export interface LessonModule {
@@ -99,6 +102,7 @@ export interface LessonModule {
   icon: string;
   description: string;
   submodules: LessonSubModule[];
+  isCustom?: boolean; // Flag for user-generated content
 }
 
 export interface QuizQuestion {

@@ -1,9 +1,10 @@
 
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, BookOpen, Briefcase, Globe, Users, Plane, GraduationCap, Info, Target, CheckCircle2, ClipboardCheck, Coffee, MapPin } from 'lucide-react';
+import { ChevronLeft, ChevronRight, BookOpen, Briefcase, Globe, Users, Plane, GraduationCap, Info, Target, CheckCircle2, ClipboardCheck, Coffee, MapPin, Sparkles, Plus, Trophy, Brain } from 'lucide-react';
 import { LessonModule, LessonSubModule } from '../types';
+import CustomModuleGenerator from './CustomModuleGenerator';
 
-const MODULES: LessonModule[] = [
+const STATIC_MODULES: LessonModule[] = [
   {
     id: 'professional',
     title: 'Professional Excellence',
@@ -147,126 +148,23 @@ const MODULES: LessonModule[] = [
         grammarExplanation: 'A + O = AO. EM + A = NA. DE + O = DO. Movement to a place: use "A" (Vou à praia) for short visits and "Para" (Vou para casa) for staying longer.'
       }
     ]
-  },
-  {
-    id: 'social',
-    title: 'The Social Fabric',
-    icon: 'Users',
-    description: 'Integration into Brazilian social circles and groups.',
-    submodules: [
-      { 
-        id: 's1', 
-        title: 'Churrasco Etiquette', 
-        description: 'Navigating the most important social event in Brazil.', 
-        prompt: 'I invited you to a churrasco! How do you arrive, what do you say to the host, and how do you join the group?',
-        grammarExplanation: 'Use "A gente" instead of "Nós" to sound like a local. It takes 3rd person singular: "A gente vai" (We go).'
-      },
-      { 
-        id: 's2', 
-        title: 'WhatsApp Group Dynamics', 
-        description: 'Mastering emojis, stickers, and "áudios".', 
-        prompt: 'Simulate a WhatsApp group chat for planning a weekend trip. Use slang and stickers (emojis).',
-        grammarExplanation: 'Abbreviate: vc (você), tb (também), pq (porque), blz (beleza). Use "kkk" or "rsrs" for laughing.'
-      },
-      { 
-        id: 's3', 
-        title: 'Brazilian Sarcasm', 
-        description: 'Understanding humor and not taking things too literally.', 
-        prompt: 'Tell me a Brazilian joke or explain how sarcasm works in SP business culture.',
-        grammarExplanation: 'Sarcasm often uses "Só que não" (SQN) at the end of a sentence to negate the entire previous statement.'
-      },
-      { 
-        id: 's4', 
-        title: 'Making Real Friends', 
-        description: 'Moving from "conhecido" to "amigo".', 
-        prompt: 'Let\'s practice a casual catch-up between friends. How do you ask about someone\'s family and life warmly?',
-        grammarExplanation: 'Ask "Como estão as coisas?" (How are things?). Use the verb "ficar" to describe changes in emotion or state: "Fiquei feliz por você."'
-      }
-    ]
-  },
-  {
-    id: 'travel',
-    title: 'Travel & Lifestyle',
-    icon: 'Plane',
-    description: 'High-end travel and day-to-day luxury services.',
-    submodules: [
-      { 
-        id: 't1', 
-        title: 'Gourmet Dining', 
-        description: 'Ordering at top-tier restaurants and handling service.', 
-        prompt: 'We are at a high-end restaurant in Jardins. Practice ordering and asking for recommendations.',
-        grammarExplanation: 'When ordering, say "Eu vou querer..." or "Pode me trazer...". Avoid direct imperatives like "Me dá".'
-      },
-      { 
-        id: 't2', 
-        title: 'Luxury Accommodations', 
-        description: 'Checking in and requesting specific amenities.', 
-        prompt: 'You are checking into a boutique hotel in Trancoso. Request a room with a view and ask about local tours.',
-        grammarExplanation: 'Use "Será que..." to ask questions tentatively: "Será que tem um quarto disponível?" (I wonder if there is...).'
-      },
-      { 
-        id: 't3', 
-        title: 'Navigating Logistics', 
-        description: 'Talking to private drivers and airport staff.', 
-        prompt: 'Scenario: Your private driver is late. Practice calling them and discussing the traffic/route politely.',
-        grammarExplanation: 'Gerunds: In Brazil, use "-ndo" (Estou chegando). Avoid the Portuguese "-a" style (Estou a chegar).'
-      },
-      { 
-        id: 't4', 
-        title: 'Shopping Manners', 
-        description: 'From boutiques in Oscar Freire to local markets.', 
-        prompt: 'Practice shopping for a gift. Ask about materials, sizes, and if there is a "desconto à vista".',
-        grammarExplanation: 'Brazilians always ask for "desconto". Use "Quanto sai?" or "Dá pra melhorar o preço?" to negotiate.'
-      }
-    ]
-  },
-  {
-    id: 'workplace',
-    title: 'Workplace Culture',
-    icon: 'BookOpen',
-    description: 'The unwritten rules of working in Brazil.',
-    submodules: [
-      { 
-        id: 'w1', 
-        title: 'Hierarchies & Power', 
-        description: 'How to address leadership vs. peers.', 
-        prompt: 'Explain the difference in addressing a "Diretor" vs. a "Coordenador" in a large Brazilian company.',
-        grammarExplanation: 'Address bosses as "O senhor" / "A senhora" until they invite you to use "você". Use titles (Dr., Eng.) if the culture is traditional.'
-      },
-      { 
-        id: 'w2', 
-        title: 'Work/Life Integration', 
-        description: 'Understanding "cafezinho" and long lunches.', 
-        prompt: 'Let\'s have a "cafezinho" chat. Practice the 10 minutes of social talk before a meeting starts.',
-        grammarExplanation: '"Bater um papo" means to have a chat. "Tomar um café" is often a metaphor for a meeting that could be social or professional.'
-      },
-      { 
-        id: 'w3', 
-        title: 'Holiday Norms', 
-        description: 'Carnaval, June Festivals, and office closures.', 
-        prompt: 'Discuss the impact of Carnaval on a project timeline. How do you negotiate this with a client?',
-        grammarExplanation: '"Folga" is a day off. "Feriado prolongado" or "Ponte" refers to bridging a holiday with a weekend.'
-      },
-      { 
-        id: 'w4', 
-        title: 'Tech & Innovation', 
-        description: 'Vocabulary for the Brazilian start-up scene.', 
-        prompt: 'Let\'s talk about "Unicórnios" and the Brazilian fintech scene. Teach me the specific jargon used here.',
-        grammarExplanation: 'Brazilians use many English loanwords in tech (start-up, mindset, budget) but pronounce them with a distinct accent (start-úpi).'
-      }
-    ]
   }
 ];
 
 interface LessonsViewProps {
+  customModules: LessonModule[];
+  onSaveCustomModule: (mod: LessonModule) => void;
   onStartLesson: (prompt: string) => void;
-  onStartQuiz: (title: string, description: string) => void;
+  onStartQuiz: (title: string, description: string, questions?: any[]) => void;
   selectedTopics: string[];
   onToggleTopic: (topicId: string) => void;
 }
 
-const LessonsView: React.FC<LessonsViewProps> = ({ onStartLesson, onStartQuiz, selectedTopics, onToggleTopic }) => {
+const LessonsView: React.FC<LessonsViewProps> = ({ customModules, onSaveCustomModule, onStartLesson, onStartQuiz, selectedTopics, onToggleTopic }) => {
   const [selectedModule, setSelectedModule] = useState<LessonModule | null>(null);
+  const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
+
+  const modules = [...customModules, ...STATIC_MODULES];
 
   const getIcon = (name: string) => {
     switch (name) {
@@ -288,19 +186,22 @@ const LessonsView: React.FC<LessonsViewProps> = ({ onStartLesson, onStartQuiz, s
         <div className="p-6 sm:p-8 max-w-4xl mx-auto w-full space-y-6">
           <button 
             onClick={() => setSelectedModule(null)}
-            className="flex items-center gap-2 text-slate-500 hover:text-emerald-600 transition-colors font-semibold"
+            className="flex items-center gap-2 text-slate-500 hover:text-emerald-600 transition-colors font-black uppercase text-[10px] tracking-widest"
           >
             <ChevronLeft size={20} />
             Back to Modules
           </button>
 
           <div className="flex items-center gap-4 mb-8">
-            <div className="p-4 bg-emerald-600 text-white rounded-2xl shadow-lg shadow-emerald-500/20">
+            <div className={`p-4 ${selectedModule.isCustom ? 'bg-slate-900' : 'bg-emerald-600'} text-white rounded-2xl shadow-lg`}>
               {getIcon(selectedModule.icon)}
             </div>
             <div>
-              <h2 className="text-3xl font-bold text-slate-900">{selectedModule.title}</h2>
-              <p className="text-slate-500">{selectedModule.description}</p>
+              <div className="flex items-center gap-2">
+                <h2 className="text-3xl font-black text-slate-900 tracking-tight">{selectedModule.title}</h2>
+                {selectedModule.isCustom && <Sparkles size={20} className="text-emerald-500" />}
+              </div>
+              <p className="text-slate-500 font-medium">{selectedModule.description}</p>
             </div>
           </div>
 
@@ -310,32 +211,44 @@ const LessonsView: React.FC<LessonsViewProps> = ({ onStartLesson, onStartQuiz, s
               return (
                 <div
                   key={sub.id}
-                  className={`group p-6 bg-white border rounded-3xl text-left transition-all flex flex-col justify-between ${
-                    isTargeted ? 'border-emerald-500 shadow-xl shadow-emerald-500/5' : 'border-slate-200 hover:border-emerald-300'
+                  className={`group p-6 bg-white border rounded-[2.5rem] text-left transition-all flex flex-col justify-between ${
+                    isTargeted ? 'border-emerald-500 shadow-xl shadow-emerald-500/5' : 'border-slate-100 hover:border-emerald-300'
                   }`}
                 >
-                  <div>
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-bold text-lg text-slate-800 group-hover:text-emerald-600 leading-tight">{sub.title}</h3>
+                  <div className="mb-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <h3 className="font-black text-lg text-slate-800 group-hover:text-emerald-600 leading-tight">{sub.title}</h3>
                       <button 
                         onClick={() => onToggleTopic(sub.id)}
                         className={`p-2 rounded-xl transition-all ${
-                          isTargeted ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-slate-50 text-slate-400 hover:bg-emerald-50 hover:text-emerald-500'
+                          isTargeted ? 'bg-emerald-500 text-white shadow-lg' : 'bg-slate-50 text-slate-400 hover:bg-emerald-50 hover:text-emerald-500'
                         }`}
-                        title={isTargeted ? "Remove target" : "Target for future practice"}
                       >
                         {isTargeted ? <CheckCircle2 size={18} /> : <Target size={18} />}
                       </button>
                     </div>
-                    <p className="text-sm text-slate-500 leading-relaxed mb-4">{sub.description}</p>
+                    
+                    {sub.milestones && (
+                      <div className="space-y-1.5 mb-6">
+                         <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Milestones</p>
+                         {sub.milestones.map((m, i) => (
+                           <div key={i} className="flex items-center gap-2 text-xs font-bold text-slate-500">
+                             <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full shrink-0" />
+                             {m}
+                           </div>
+                         ))}
+                      </div>
+                    )}
+
+                    <p className="text-sm text-slate-500 font-medium leading-relaxed mb-6">{sub.description}</p>
                     
                     {sub.grammarExplanation && (
-                      <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100 mb-6">
-                        <div className="flex items-center gap-2 text-emerald-700 mb-2">
-                          <Info size={14} className="shrink-0" />
-                          <span className="text-[11px] font-bold uppercase tracking-wider">Grammar Snapshot</span>
+                      <div className="bg-slate-50 p-4 rounded-3xl border border-slate-100">
+                        <div className="flex items-center gap-2 text-slate-400 mb-2">
+                          <Brain size={14} className="shrink-0" />
+                          <span className="text-[9px] font-black uppercase tracking-widest">Grammar Snapshot</span>
                         </div>
-                        <p className="text-xs text-emerald-800/80 leading-relaxed italic">
+                        <p className="text-xs text-slate-600 leading-relaxed italic font-medium">
                           {sub.grammarExplanation}
                         </p>
                       </div>
@@ -345,15 +258,15 @@ const LessonsView: React.FC<LessonsViewProps> = ({ onStartLesson, onStartQuiz, s
                   <div className="flex flex-col gap-2">
                     <button
                       onClick={() => onStartLesson(sub.prompt)}
-                      className="w-full bg-slate-100 group-hover:bg-emerald-600 group-hover:text-white text-slate-500 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                      className="w-full bg-slate-900 group-hover:bg-emerald-600 text-white py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2"
                     >
                       Practice Chat <ChevronRight size={14} />
                     </button>
                     <button
-                      onClick={() => onStartQuiz(sub.title, sub.description)}
-                      className="w-full border border-slate-200 hover:border-emerald-200 hover:bg-emerald-50 text-slate-400 hover:text-emerald-600 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                      onClick={() => onStartQuiz(sub.title, sub.description, sub.unitTest)}
+                      className="w-full border-2 border-slate-100 hover:border-emerald-200 hover:bg-emerald-50 text-slate-400 hover:text-emerald-600 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2"
                     >
-                      Knowledge Check <ClipboardCheck size={14} />
+                      Unit Test <ClipboardCheck size={14} />
                     </button>
                   </div>
                 </div>
@@ -366,54 +279,68 @@ const LessonsView: React.FC<LessonsViewProps> = ({ onStartLesson, onStartQuiz, s
   }
 
   return (
-    <div className="h-full flex flex-col bg-slate-50 overflow-y-auto pb-32">
-      <div className="p-6 sm:p-8 max-w-5xl mx-auto w-full space-y-8">
-        <div className="text-center space-y-2">
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">Structured Learning</h2>
-          <p className="text-slate-500 text-lg">Personalized curriculum for Chandler's growth.</p>
+    <div className="h-full flex flex-col bg-slate-50 overflow-y-auto pb-32 no-scrollbar">
+      {isGeneratorOpen && <CustomModuleGenerator onSave={onSaveCustomModule} onClose={() => setIsGeneratorOpen(false)} />}
+      
+      <div className="p-6 sm:p-8 max-w-5xl mx-auto w-full space-y-12">
+        <div className="text-center space-y-4">
+          <div className="flex items-center justify-center gap-2">
+            <GraduationCap size={24} className="text-emerald-500" />
+            <h2 className="text-4xl font-black text-slate-900 tracking-tighter">Currículo de Fluência</h2>
+          </div>
+          <p className="text-slate-500 text-lg font-medium">Jornadas personalizadas para a evolução do Chandler.</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {MODULES.map((mod) => (
+        {/* Studio Banner */}
+        <div className="bg-slate-950 p-10 rounded-[3.5rem] shadow-2xl text-white relative overflow-hidden group">
+           <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500 rounded-full -mr-40 -mt-40 opacity-[0.08] group-hover:scale-125 transition-transform duration-1000" />
+           <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8 text-center md:text-left">
+              <div className="space-y-4">
+                <div className="flex items-center justify-center md:justify-start gap-3">
+                  <div className="p-2 bg-emerald-500 text-white rounded-lg"><Sparkles size={20} /></div>
+                  <h3 className="text-2xl font-black tracking-tight leading-none">Lesson Studio</h3>
+                </div>
+                <p className="text-slate-400 text-lg leading-relaxed font-medium max-w-md">
+                   Não encontrou o que precisa? Peça para o Iwry gerar um módulo customizado sobre qualquer tópico com testes e metas.
+                </p>
+              </div>
+              <button 
+                onClick={() => setIsGeneratorOpen(true)}
+                className="bg-emerald-600 text-white px-10 py-5 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] transition-all hover:bg-emerald-500 shadow-xl shadow-emerald-600/20 flex items-center gap-3 active:scale-95 shrink-0"
+              >
+                Criar Aula Nova <Plus size={18} />
+              </button>
+           </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          {modules.map((mod) => (
             <button
               key={mod.id}
               onClick={() => setSelectedModule(mod)}
-              className="group bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-2xl hover:shadow-slate-200/50 transition-all text-left flex flex-col items-start"
+              className={`group p-8 rounded-[3rem] border shadow-sm transition-all text-left flex flex-col items-start relative ${
+                mod.isCustom ? 'bg-white border-emerald-100 ring-2 ring-emerald-500/5' : 'bg-white border-slate-100 hover:border-emerald-300'
+              }`}
             >
-              <div className="p-4 bg-slate-50 text-slate-400 group-hover:bg-emerald-50 group-hover:text-emerald-600 rounded-2xl mb-6 transition-colors">
+              {mod.isCustom && <div className="absolute top-6 right-6 text-emerald-500"><Sparkles size={16} /></div>}
+              <div className={`p-4 rounded-2xl mb-6 transition-colors ${mod.isCustom ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-400 group-hover:bg-emerald-50 group-hover:text-emerald-600'}`}>
                 {getIcon(mod.icon)}
               </div>
-              <h3 className="text-xl font-bold text-slate-800 mb-2">{mod.title}</h3>
-              <p className="text-sm text-slate-500 mb-6 leading-relaxed flex-1">{mod.description}</p>
-              <div className="flex items-center justify-between w-full pt-4 border-t border-slate-50">
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{mod.submodules.length} Lessons</span>
-                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-emerald-600 group-hover:text-white transition-all">
-                  <ChevronRight size={18} />
+              <h3 className="text-xl font-black text-slate-800 mb-2 leading-tight">{mod.title}</h3>
+              <p className="text-sm text-slate-400 mb-8 leading-relaxed font-medium flex-1 line-clamp-3">{mod.description}</p>
+              <div className="flex items-center justify-between w-full pt-6 border-t border-slate-50">
+                <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">{mod.submodules.length} Etapas</span>
+                <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-emerald-600 group-hover:text-white transition-all shadow-sm">
+                  <ChevronRight size={20} />
                 </div>
               </div>
             </button>
           ))}
         </div>
-
-        <div className="bg-emerald-900 text-white p-8 sm:p-10 rounded-[3rem] shadow-2xl shadow-emerald-900/20 relative overflow-hidden">
-          <div className="relative z-10 flex flex-col sm:flex-row items-center gap-8">
-            <div className="flex-1 text-center sm:text-left space-y-4">
-              <h3 className="text-2xl font-bold">Custom Request?</h3>
-              <p className="text-emerald-100 opacity-80">Want to learn something specific not covered here? Just ask Iwry in the conversation mode!</p>
-              <button 
-                onClick={() => onStartLesson('I want to create a custom lesson about: ')}
-                className="bg-white text-emerald-900 px-6 py-3 rounded-xl font-bold text-sm hover:bg-emerald-50 transition-colors"
-              >
-                Suggest a Topic
-              </button>
-            </div>
-            <div className="hidden sm:block">
-               <GraduationCap size={120} className="text-emerald-800 opacity-50" />
-            </div>
-          </div>
-          <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-800 rounded-full -mr-32 -mt-32 opacity-20"></div>
-        </div>
       </div>
+      <style>{`
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+      `}</style>
     </div>
   );
 };

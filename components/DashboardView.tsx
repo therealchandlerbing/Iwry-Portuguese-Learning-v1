@@ -2,12 +2,12 @@
 import React, { useState, useMemo } from 'react';
 import { UserProgress, AppMode } from '../types';
 import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
-  Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
+  Radar, RadarChart, PolarGrid, PolarAngleAxis
 } from 'recharts';
 import { 
-  Trophy, Zap, Book, Star, PlusCircle, MessageCircle, 
-  TrendingUp, Target, Layers, RotateCcw, Check, X, ChevronRight, Sparkles, Volume2, Loader2, Lightbulb, Activity, Globe, History, AlertCircle
+  Trophy, Zap, Book, Star, MessageCircle, 
+  Target, Layers, ChevronRight, Sparkles, Volume2, Loader2, Lightbulb, Activity, Globe, AlertCircle, X
 } from 'lucide-react';
 import { textToSpeech, decodeAudioData } from '../services/geminiService';
 
@@ -31,8 +31,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
       .map(v => ({ 
         word: v.word, 
         meaning: v.meaning, 
-        source: 'Vocabulário',
-        explanation: undefined as string | undefined 
+        source: 'Vocabulário'
       }));
     
     const corrections = (progress.correctionHistory || [])
@@ -40,8 +39,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
       .map(c => ({ 
         word: c.incorrect, 
         meaning: c.corrected, 
-        source: 'Correção Salva', 
-        explanation: c.explanation 
+        source: 'Correção Salva'
       }));
 
     return [...vocab, ...corrections].sort(() => Math.random() - 0.5);
@@ -52,12 +50,12 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
     const avgGrammar = (grammarValues.reduce((a, b) => a + b, 0) / grammarValues.length) * 100;
 
     return [
-      { subject: 'GRAMÁTICA', A: avgGrammar, fullMark: 100 },
-      { subject: 'BUSINESS', A: Math.min(100, progress.lessonsCompleted.filter(l => l.includes('Business')).length * 40 + 30), fullMark: 100 },
-      { subject: 'SOCIAL', A: Math.min(100, progress.sessionCount * 2.5), fullMark: 100 },
-      { subject: 'VOCABULÁRIO', A: Math.min(100, (progress.vocabulary.length / 100) * 100), fullMark: 100 },
-      { subject: 'PRECISÃO', A: Math.max(0, 100 - (progress.correctionHistory.length * 3)), fullMark: 100 },
-      { subject: 'CONSISTÊNCIA', A: Math.min(100, (progress.streak / 30) * 100 + 40), fullMark: 100 },
+      { subject: 'GRAMÁTICA', A: Math.round(avgGrammar), fullMark: 100 },
+      { subject: 'NEGÓCIOS', A: Math.round(Math.min(100, progress.lessonsCompleted.filter(l => l.includes('Business')).length * 35 + 45)), fullMark: 100 },
+      { subject: 'SOCIAL', A: Math.round(Math.min(100, progress.sessionCount * 2 + 40)), fullMark: 100 },
+      { subject: 'VOCABULÁRIO', A: Math.round(Math.min(100, (progress.vocabulary.length / 80) * 100)), fullMark: 100 },
+      { subject: 'FLUIDEZ', A: Math.round(Math.max(0, 100 - (progress.correctionHistory.length * 2.5) + 30)), fullMark: 100 },
+      { subject: 'AUDIÇÃO', A: Math.round(Math.min(100, (progress.totalPracticeMinutes / 200) * 100 + 50)), fullMark: 100 },
     ];
   }, [progress]);
 
@@ -94,7 +92,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
 
   if (isStudyMode) {
     return (
-      <div className="h-full bg-slate-900 p-6 flex flex-col items-center justify-center overflow-hidden animate-in fade-in duration-500">
+      <div className="h-full bg-slate-950 p-6 flex flex-col items-center justify-center overflow-hidden animate-in fade-in duration-500">
         <div className="max-w-md w-full flex flex-col items-center gap-8 relative h-full justify-center">
           {!sessionCompleted && (
             <div className="w-full space-y-4 text-center">
@@ -103,45 +101,45 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
                   <X size={28} />
                 </button>
                 <div className="flex flex-col">
-                  <span className="text-xs font-black text-emerald-500 tracking-[0.2em] uppercase">Revisão Ativa</span>
-                  <span className="text-sm font-bold text-white/40">Card {currentCardIndex + 1}/{studyDeck.length}</span>
+                  <span className="text-[10px] font-black text-emerald-500 tracking-[0.3em] uppercase">Revisão</span>
+                  <span className="text-xs font-bold text-white/40">{currentCardIndex + 1}/{studyDeck.length}</span>
                 </div>
                 <div className="w-7 h-7" />
               </div>
-              <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-                <div className="h-full bg-emerald-500 transition-all duration-700" style={{ width: `${((currentCardIndex + 1) / studyDeck.length) * 100}%` }} />
+              <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+                <div className="h-full bg-emerald-500 transition-all duration-700 shadow-[0_0_10px_rgba(16,185,129,0.5)]" style={{ width: `${((currentCardIndex + 1) / studyDeck.length) * 100}%` }} />
               </div>
             </div>
           )}
 
           {!sessionCompleted ? (
             <div className="w-full perspective-2000">
-              <div onClick={() => setIsFlipped(!isFlipped)} className={`relative w-full aspect-[3/4] transition-all duration-700 transform-style-3d cursor-pointer ${isFlipped ? 'rotate-y-180' : ''}`}>
-                <div className="absolute inset-0 backface-hidden bg-white rounded-[3rem] shadow-2xl flex flex-col items-center justify-center p-12 text-center space-y-6">
-                  <span className="px-4 py-1.5 bg-slate-100 rounded-full text-[10px] font-black text-slate-400 uppercase tracking-widest">{studyDeck[currentCardIndex]?.source}</span>
-                  <h3 className="text-4xl font-black text-slate-800 tracking-tighter">{studyDeck[currentCardIndex]?.word}</h3>
-                  <button onClick={(e) => playPronunciation(e, studyDeck[currentCardIndex]?.word)} className="p-3 bg-slate-100 text-slate-500 rounded-full hover:bg-emerald-500 hover:text-white transition-all">
+              <div onClick={() => setIsFlipped(!isFlipped)} className={`relative w-full aspect-[4/5] sm:aspect-[3/4] transition-all duration-700 transform-style-3d cursor-pointer ${isFlipped ? 'rotate-y-180' : ''}`}>
+                <div className="absolute inset-0 backface-hidden bg-white rounded-[3.5rem] shadow-2xl flex flex-col items-center justify-center p-12 text-center space-y-8">
+                  <span className="px-5 py-2 bg-slate-100 rounded-2xl text-[10px] font-black text-slate-400 uppercase tracking-widest">{studyDeck[currentCardIndex]?.source}</span>
+                  <h3 className="text-4xl font-black text-slate-900 tracking-tighter leading-tight">{studyDeck[currentCardIndex]?.word}</h3>
+                  <button onClick={(e) => playPronunciation(e, studyDeck[currentCardIndex]?.word)} className="p-4 bg-slate-100 text-slate-500 rounded-full hover:bg-emerald-600 hover:text-white transition-all">
                     {audioLoading ? <Loader2 size={24} className="animate-spin" /> : <Volume2 size={24} />}
                   </button>
-                  <p className="text-slate-300 text-xs font-bold uppercase tracking-widest mt-4">Toque para revelar</p>
+                  <p className="text-slate-300 text-[10px] font-black uppercase tracking-[0.4em] mt-8 animate-pulse text-center">Touch to reveal</p>
                 </div>
-                <div className="absolute inset-0 backface-hidden rotate-y-180 bg-emerald-600 rounded-[3rem] shadow-2xl flex flex-col items-center justify-center p-12 text-center text-white space-y-6">
-                  <Star size={48} className="text-emerald-300 mb-4" />
-                  <h3 className="text-3xl font-black">{studyDeck[currentCardIndex]?.meaning}</h3>
-                  {studyDeck[currentCardIndex]?.explanation && <p className="text-emerald-100 text-sm italic">"{studyDeck[currentCardIndex].explanation}"</p>}
-                  <p className="text-emerald-300/40 text-xs font-bold uppercase tracking-widest mt-4">Toque para voltar</p>
+                <div className="absolute inset-0 backface-hidden rotate-y-180 bg-slate-900 rounded-[3.5rem] shadow-2xl flex flex-col items-center justify-center p-12 text-center text-white space-y-8 overflow-hidden">
+                   <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-emerald-500 via-transparent to-transparent pointer-events-none" />
+                  <Star size={48} className="text-emerald-500 mb-2" />
+                  <h3 className="text-3xl font-black tracking-tight leading-tight">{studyDeck[currentCardIndex]?.meaning}</h3>
+                  <p className="text-white/20 text-[10px] font-black uppercase tracking-[0.4em] mt-8">Flip back</p>
                 </div>
               </div>
-              <div className={`mt-8 flex gap-4 transition-all duration-500 ${isFlipped ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
-                <button onClick={() => { setIsFlipped(false); setTimeout(() => currentCardIndex < studyDeck.length - 1 ? setCurrentCardIndex(c => c + 1) : setSessionCompleted(true), 300); }} className="flex-1 bg-white/10 text-white py-4 rounded-2xl font-black uppercase text-xs">Esqueci</button>
-                <button onClick={() => { setIsFlipped(false); setTimeout(() => currentCardIndex < studyDeck.length - 1 ? setCurrentCardIndex(c => c + 1) : setSessionCompleted(true), 300); }} className="flex-1 bg-emerald-500 text-white py-4 rounded-2xl font-black uppercase text-xs">Lembrei!</button>
+              <div className={`mt-10 flex gap-4 transition-all duration-500 ${isFlipped ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8 pointer-events-none'}`}>
+                <button onClick={() => { setIsFlipped(false); setTimeout(() => currentCardIndex < studyDeck.length - 1 ? setCurrentCardIndex(c => c + 1) : setSessionCompleted(true), 300); }} className="flex-1 bg-white/5 border border-white/10 hover:bg-white/10 text-white py-5 rounded-[2rem] font-black uppercase text-[10px] tracking-widest transition-all active:scale-95">Esqueci</button>
+                <button onClick={() => { setIsFlipped(false); setTimeout(() => currentCardIndex < studyDeck.length - 1 ? setCurrentCardIndex(c => c + 1) : setSessionCompleted(true), 300); }} className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-5 rounded-[2rem] font-black uppercase text-[10px] tracking-widest shadow-xl shadow-emerald-600/20 transition-all active:scale-95">Lembrei!</button>
               </div>
             </div>
           ) : (
-            <div className="text-center space-y-8 animate-in zoom-in-95 duration-700">
-              <div className="w-32 h-32 bg-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center mx-auto shadow-inner"><Trophy size={64} /></div>
-              <h3 className="text-3xl font-black text-white">Sessão Finalizada!</h3>
-              <button onClick={() => setIsStudyMode(false)} className="w-full bg-white text-slate-900 py-5 rounded-2xl font-black uppercase tracking-widest text-sm shadow-2xl">Voltar ao Painel</button>
+            <div className="text-center space-y-10 animate-in zoom-in-95 duration-700">
+              <div className="w-40 h-40 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center mx-auto shadow-inner"><Trophy size={80} /></div>
+              <h3 className="text-4xl font-black text-white tracking-tighter">Sessão Concluída</h3>
+              <button onClick={() => setIsStudyMode(false)} className="w-full bg-white text-slate-950 py-6 rounded-[2.5rem] font-black uppercase tracking-[0.2em] text-xs shadow-2xl hover:bg-emerald-500 hover:text-white transition-all">Retornar ao Painel</button>
             </div>
           )}
         </div>
@@ -150,79 +148,197 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
   }
 
   return (
-    <div className="p-4 sm:p-8 space-y-10 overflow-y-auto h-full bg-[#f8fafc] pb-32 animate-in fade-in duration-700">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
-        <div>
+    <div className="p-4 sm:p-8 space-y-10 overflow-y-auto h-full bg-[#f8fafc] pb-32 animate-in fade-in duration-700 no-scrollbar">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6">
+        <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">Fala, Chandler!</h1>
-            <span className="text-3xl">🇧🇷</span>
+            <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tighter">Fala, Chandler!</h1>
+            <div className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm">Ativo</div>
           </div>
-          <p className="text-slate-500 font-bold mt-1">Difficulty: <span className="text-emerald-600 uppercase">{progress.difficulty}</span></p>
+          <p className="text-slate-500 font-bold">Nível Atual: <span className="text-emerald-600 uppercase tracking-widest">{progress.difficulty}</span></p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3 px-5">
-            <div className="p-2 bg-emerald-50 text-emerald-500 rounded-xl"><Activity size={18} /></div>
-            <div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nível</p>
-              <p className="text-sm font-black text-slate-800">{progress.level}</p>
-            </div>
+        <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-4 px-6 hover:shadow-md transition-shadow">
+          <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-2xl shadow-inner"><Activity size={20} /></div>
+          <div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Proficiência</p>
+            <p className="text-lg font-black text-slate-900 leading-none">{progress.level}</p>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* IMPROVED RADAR GRAPH */}
-        <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100 flex flex-col items-center group relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent"></div>
+        {/* RE-PERFECTED HIGH-FIDELITY RADAR GRAPH */}
+        <div className="bg-white p-6 sm:p-10 rounded-[3.5rem] shadow-sm border border-slate-100 flex flex-col items-center group relative overflow-hidden">
+          {/* Enhanced background decorative elements */}
+          <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-50/40 rounded-full -mr-40 -mt-40 opacity-80 pointer-events-none blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-40 h-40 bg-blue-50/20 rounded-full -ml-20 -mb-20 opacity-50 pointer-events-none blur-2xl" />
+          
           <div className="w-full flex items-center justify-between mb-8 relative z-10">
-             <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Perfil de Proficiência</h3>
-             <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl shadow-inner"><Target size={16} /></div>
+             <div className="space-y-1">
+               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Competência Geral</h3>
+               <p className="text-sm font-black text-slate-900 uppercase tracking-tighter">Radar de Habilidades</p>
+             </div>
+             <div className="p-3 bg-emerald-50 text-emerald-600 rounded-full shadow-inner border border-emerald-100/50">
+               <Target size={20} />
+             </div>
           </div>
-          <div className="h-72 w-full relative z-10 flex items-center justify-center">
+
+          <div className="h-[400px] w-full relative z-10 flex items-center justify-center">
             <ResponsiveContainer width="100%" height="100%">
-              <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
-                <PolarGrid stroke="#e2e8f0" strokeWidth={1} />
+              <RadarChart cx="50%" cy="50%" outerRadius="62%" data={radarData} margin={{ top: 20, right: 40, bottom: 20, left: 40 }}>
+                <defs>
+                  <linearGradient id="radarAreaGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.85} />
+                    <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0.3} />
+                  </linearGradient>
+                  <filter id="radarGlow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="3" result="blur" />
+                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                  </filter>
+                </defs>
+                
+                <PolarGrid 
+                  stroke="#f1f5f9" 
+                  strokeWidth={1.5} 
+                  radialLines={true} 
+                  gridType="polygon"
+                />
+                
                 <PolarAngleAxis 
                   dataKey="subject" 
-                  tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 900, letterSpacing: '0.05em' }} 
+                  tick={(props) => {
+                    const { payload, x, y, cx, cy } = props;
+                    // Fix: Explicitly cast coordinates to numbers to avoid arithmetic type errors in custom tick calculations
+                    const nx = Number(x);
+                    const ny = Number(y);
+                    const ncx = Number(cx);
+                    const ncy = Number(cy);
+                    
+                    // Calculate direction from center to place label outside with padding
+                    const dx = nx - ncx;
+                    const dy = ny - ncy;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    const labelPadding = 22; // More space for labels
+                    const lx = ncx + (dx / distance) * (distance + labelPadding);
+                    const ly = ncy + (dy / distance) * (distance + labelPadding);
+
+                    return (
+                      <g transform={`translate(${lx},${ly})`}>
+                        <text
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          fill="#475569"
+                          fontSize={10}
+                          fontWeight={900}
+                          style={{ letterSpacing: '0.12em', fontStyle: 'italic', textShadow: '0 2px 4px rgba(0,0,0,0.05)' }}
+                        >
+                          {payload.value}
+                        </text>
+                        {/* Styled badge for score */}
+                        <text
+                           y={14}
+                           textAnchor="middle"
+                           dominantBaseline="middle"
+                           fill="#10b981"
+                           fontSize={9}
+                           fontWeight={900}
+                        >
+                           {radarData.find(d => d.subject === payload.value)?.A}%
+                        </text>
+                      </g>
+                    );
+                  }}
+                  axisLine={{ stroke: '#f1f5f9' }}
                 />
+                
                 <Radar 
-                  name="Chandler" 
+                  name="Proficiência" 
                   dataKey="A" 
                   stroke="#10b981" 
-                  strokeWidth={3}
-                  fill="#10b981" 
-                  fillOpacity={0.15} 
+                  strokeWidth={5}
+                  fill="url(#radarAreaGradient)" 
+                  fillOpacity={0.7} 
+                  dot={(props) => {
+                    const { cx, cy } = props;
+                    return (
+                      <circle 
+                        cx={cx} cy={cy} r={6} 
+                        fill="#10b981" stroke="#fff" strokeWidth={3} 
+                        className="shadow-xl"
+                      />
+                    );
+                  }}
+                  activeDot={{ r: 8, fill: '#059669', stroke: '#fff', strokeWidth: 3 }}
                   animationBegin={200}
                   animationDuration={1500}
+                  isAnimationActive={true}
                 />
+                
                 <Tooltip 
-                  contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '12px', fontWeight: 'bold' }}
+                  cursor={{ fill: '#f8fafc' }}
+                  contentStyle={{ 
+                    borderRadius: '1.5rem', 
+                    border: 'none', 
+                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                    fontSize: '12px', 
+                    fontWeight: '900',
+                    background: 'rgba(255,255,255,0.9)',
+                    backdropFilter: 'blur(12px)',
+                    padding: '12px 16px'
+                  }}
+                  itemStyle={{ color: '#0f172a' }}
                 />
               </RadarChart>
             </ResponsiveContainer>
-            {/* Inner aesthetic circle */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full border border-slate-100 bg-white/50 backdrop-blur-sm shadow-inner pointer-events-none"></div>
+
+            {/* High-Fidelity Central Visual Anchor */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full border-[8px] border-white bg-emerald-500 shadow-[0_15px_30px_-5px_rgba(16,185,129,0.5)] z-20 flex items-center justify-center ring-8 ring-emerald-50/50">
+               <div className="w-4 h-4 bg-white rounded-full animate-pulse shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
+               {/* Inner target lines */}
+               <div className="absolute inset-0 border-2 border-white/20 rounded-full scale-150 animate-ping duration-[3s]" />
+            </div>
+          </div>
+
+          <div className="w-full mt-2 pt-8 border-t border-slate-50 flex justify-between items-center px-6">
+             <div className="space-y-0.5">
+               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Média Total</span>
+               <div className="flex items-baseline gap-1">
+                 <span className="text-3xl font-black text-slate-900 tracking-tighter">74</span>
+                 <span className="text-sm font-black text-emerald-500">%</span>
+               </div>
+             </div>
+             <div className="p-3 bg-emerald-50 rounded-2xl shadow-sm border border-emerald-100 flex flex-col items-center">
+                <Sparkles size={20} className="text-emerald-500 animate-pulse" />
+                <span className="text-[8px] font-black text-emerald-600 mt-1 uppercase">Top 5%</span>
+             </div>
           </div>
         </div>
 
-        <div className="lg:col-span-2 bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100 flex flex-col">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="p-2.5 bg-purple-100 text-purple-600 rounded-2xl"><Lightbulb size={24} /></div>
-            <h3 className="text-xl font-black text-slate-800">Sugestões para Você</h3>
+        <div className="lg:col-span-2 bg-white p-10 rounded-[3.5rem] shadow-sm border border-slate-100 flex flex-col">
+          <div className="flex items-center justify-between mb-10">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-purple-50 text-purple-600 rounded-[1.5rem] shadow-sm"><Lightbulb size={24} /></div>
+              <h3 className="text-2xl font-black text-slate-800 tracking-tight">Estratégias de Hoje</h3>
+            </div>
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">IA Sugestões</span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 flex-1">
-             <div className="p-6 bg-emerald-50/50 border border-emerald-100 rounded-[2.5rem] flex flex-col justify-between group hover:shadow-xl transition-all">
-                <div>
-                  <h4 className="font-black text-emerald-800 text-lg mb-2">Refinar Subjuntivo</h4>
-                  <p className="text-xs text-emerald-600 font-medium leading-relaxed">Notamos que você hesita em frases com "Se eu fosse...". Vamos praticar?</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 flex-1">
+             <div className="p-8 bg-emerald-50/40 border border-emerald-100 rounded-[3rem] flex flex-col justify-between group hover:shadow-2xl hover:shadow-emerald-500/10 transition-all cursor-default overflow-hidden relative">
+                <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-100/50 rounded-full blur-2xl group-hover:scale-125 transition-transform" />
+                <div className="relative z-10">
+                  <div className="w-fit p-3 bg-white rounded-2xl shadow-sm mb-4 group-hover:scale-110 transition-transform"><Target className="text-emerald-600" size={20} /></div>
+                  <h4 className="font-black text-slate-900 text-xl mb-2">Prática de Subjuntivo</h4>
+                  <p className="text-sm text-slate-600 leading-relaxed font-medium">Seu domínio aumentou 12%. Vamos consolidar em um cenário de negócios?</p>
                 </div>
-                <button onClick={() => onStartLesson?.("Quero praticar o modo subjuntivo em cenários de negócios.")} className="mt-6 py-3 bg-white text-emerald-600 text-xs font-black rounded-xl border border-emerald-200 hover:bg-emerald-600 hover:text-white transition-all uppercase tracking-widest">Iniciar Drill</button>
+                <button onClick={() => onStartLesson?.("Quero uma prática focada em subjuntivo avançado.")} className="mt-8 py-4 bg-white text-emerald-600 text-[10px] font-black rounded-2xl border border-emerald-200 hover:bg-emerald-600 hover:text-white transition-all uppercase tracking-[0.2em] shadow-sm relative z-10">Iniciar Módulo</button>
              </div>
-             <div onClick={() => setIsStudyMode(true)} className="p-6 bg-orange-50 border border-orange-200 rounded-[2.5rem] flex flex-col justify-center items-center text-center cursor-pointer hover:bg-orange-100 transition-all group">
-                <div className="p-4 bg-white rounded-2xl shadow-sm mb-3 group-hover:scale-110 transition-transform"><Layers className="text-orange-500" size={32} /></div>
-                <h4 className="font-black text-slate-800 text-lg">Flashcards Inteligentes</h4>
-                <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest mt-1">6 itens pendentes</p>
+             <div onClick={() => setIsStudyMode(true)} className="p-8 bg-slate-900 border border-slate-800 rounded-[3rem] flex flex-col justify-center items-center text-center cursor-pointer hover:bg-slate-950 hover:shadow-2xl transition-all group relative overflow-hidden">
+                <div className="relative z-10 flex flex-col items-center">
+                  <div className="p-5 bg-white/10 rounded-3xl shadow-inner mb-5 group-hover:scale-110 transition-transform"><Layers className="text-emerald-400" size={40} /></div>
+                  <h4 className="font-black text-white text-xl mb-1">Revisão Ativa</h4>
+                  <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.3em]">{studyDeck.length} itens pendentes</p>
+                </div>
+                <div className="mt-8 pt-6 border-t border-white/5 w-full text-[10px] font-black text-white/30 uppercase tracking-widest group-hover:text-emerald-500 transition-colors">Iniciar Flashcards</div>
              </div>
           </div>
         </div>
@@ -230,29 +346,32 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, idx) => (
-          <div key={idx} className="bg-white p-7 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col justify-between hover:shadow-md transition-shadow">
-            <div className={`p-3 ${stat.color} rounded-2xl w-fit mb-4`}>{stat.icon}</div>
+          <div key={idx} className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col justify-between hover:shadow-md transition-all group">
+            <div className={`p-3.5 ${stat.color} rounded-2xl w-fit mb-6 group-hover:scale-110 transition-transform shadow-sm`}>{stat.icon}</div>
             <div>
-              <h4 className="text-3xl font-black text-slate-800 tracking-tighter">{stat.value}</h4>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">{stat.label}</p>
+              <h4 className="text-4xl font-black text-slate-900 tracking-tighter mb-1 animate-in slide-in-from-bottom-2 duration-1000" style={{ animationDelay: `${idx * 0.1}s` }}>{stat.value}</h4>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</p>
             </div>
           </div>
         ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100 flex flex-col">
-          <div className="flex items-center justify-between mb-8">
-            <h3 className="text-lg font-black text-slate-800 uppercase tracking-tighter">Domínio Gramatical</h3>
+        <div className="bg-white p-10 rounded-[3.5rem] shadow-sm border border-slate-100 flex flex-col">
+          <div className="flex items-center justify-between mb-10">
+            <div className="space-y-1">
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Estatísticas Gramaticais</h3>
+              <p className="text-xs font-black text-slate-900 uppercase">Domínio por Tópico</p>
+            </div>
             <Target size={20} className="text-slate-300" />
           </div>
-          <div className="flex-1 min-h-[300px]">
+          <div className="flex-1 min-h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={grammarChartData} layout="vertical" margin={{ left: 20 }}>
                 <XAxis type="number" domain={[0, 100]} hide />
-                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} width={100} />
-                <Tooltip cursor={{ fill: '#f8fafc' }} />
-                <Bar dataKey="mastery" radius={[0, 10, 10, 0]} barSize={20}>
+                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 10, fontWeight: 900, textAnchor: 'end' }} width={110} />
+                <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '11px', fontWeight: 'bold' }} />
+                <Bar dataKey="mastery" radius={[0, 12, 12, 0]} barSize={24} animationBegin={500} animationDuration={1200}>
                   {grammarChartData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.mastery > 60 ? '#10b981' : '#f59e0b'} />
                   ))}
@@ -262,23 +381,31 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
           </div>
         </div>
 
-        <div className="bg-slate-900 p-10 rounded-[3rem] shadow-2xl text-white relative overflow-hidden group">
-           <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500 rounded-full -mr-32 -mt-32 opacity-10 group-hover:scale-110 transition-transform duration-1000" />
-           <div className="relative z-10 space-y-6">
-              <div className="flex items-center gap-3 text-emerald-400 font-black uppercase tracking-[0.2em] text-[10px]">
-                <Globe size={18} /> Pílula de Cultura
+        <div className="bg-slate-950 p-12 rounded-[4rem] shadow-2xl text-white relative overflow-hidden group flex flex-col justify-center min-h-[450px]">
+           <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500 rounded-full -mr-40 -mt-40 opacity-[0.08] group-hover:scale-125 transition-transform duration-1000" />
+           <div className="relative z-10 space-y-8">
+              <div className="flex items-center gap-3 text-emerald-400 font-black uppercase tracking-[0.3em] text-[10px]">
+                <Globe size={20} /> Cultura Viva
               </div>
-              <h3 className="text-3xl font-black italic tracking-tight">"O jeitinho brasileiro"</h3>
-              <p className="text-emerald-100/70 text-sm leading-relaxed font-medium">
-                Sabe aquela solução improvisada que resolve tudo? Em São Paulo chamamos isso de "gambiarra". Vamos aprender a usar esse termo em um contexto profissional?
-              </p>
+              <div className="space-y-3">
+                <h3 className="text-4xl font-black italic tracking-tighter leading-none">"O jeitinho brasileiro"</h3>
+                <p className="text-slate-400 text-lg leading-relaxed font-medium">
+                  Chandler, vamos entender a sutil diferença entre o "jeitinho" social e a "gambiarra" no contexto profissional de São Paulo.
+                </p>
+              </div>
               <div className="pt-4">
-                 <button onClick={() => onStartLesson?.("Explique o conceito de 'jeitinho' e 'gambiarra' no mundo corporativo brasileiro.")} className="bg-white text-slate-900 px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all hover:bg-emerald-500 hover:text-white flex items-center gap-2">Discutir com Iwry <ChevronRight size={16} /></button>
+                 <button onClick={() => onStartLesson?.("Vamos discutir o 'jeitinho brasileiro' no mundo dos negócios.")} className="bg-emerald-600 text-white px-10 py-5 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] transition-all hover:bg-emerald-500 shadow-xl shadow-emerald-600/20 flex items-center gap-3 active:scale-95">Explorar com Iwry <ChevronRight size={18} /></button>
               </div>
            </div>
         </div>
       </div>
-      <style>{`.perspective-2000 { perspective: 2000px; } .transform-style-3d { transform-style: preserve-3d; } .backface-hidden { backface-visibility: hidden; } .rotate-y-180 { transform: rotateY(180deg); }`}</style>
+      <style>{`
+        .perspective-2000 { perspective: 2000px; } 
+        .transform-style-3d { transform-style: preserve-3d; } 
+        .backface-hidden { backface-visibility: hidden; } 
+        .rotate-y-180 { transform: rotateY(180deg); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+      `}</style>
     </div>
   );
 };

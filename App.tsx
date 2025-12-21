@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { AppMode, Message, UserProgress, VocabItem, MemoryEntry, SessionAnalysis, DifficultyLevel, CorrectionObject } from './types';
+import { AppMode, Message, UserProgress, VocabItem, MemoryEntry, SessionAnalysis, DifficultyLevel, CorrectionObject, LessonModule } from './types';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import ChatView from './components/ChatView';
@@ -37,7 +37,8 @@ const INITIAL_PROGRESS: UserProgress = {
   streak: 12,
   selectedTopics: [],
   lastSessionDate: new Date(),
-  sessionCount: 24
+  sessionCount: 24,
+  generatedModules: []
 };
 
 const App: React.FC = () => {
@@ -46,7 +47,7 @@ const App: React.FC = () => {
   const [mode, setMode] = useState<AppMode>(AppMode.DASHBOARD);
   const [progress, setProgress] = useState<UserProgress>(INITIAL_PROGRESS);
   const [lastAnalysis, setLastAnalysis] = useState<SessionAnalysis | null>(null);
-  const [activeQuizTopic, setActiveQuizTopic] = useState<{title: string, description: string} | null>(null);
+  const [activeQuizTopic, setActiveQuizTopic] = useState<{title: string, description: string, questions?: any[]} | null>(null);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -193,8 +194,8 @@ const App: React.FC = () => {
     }
   };
 
-  const startQuiz = (title: string, description: string) => {
-    setActiveQuizTopic({ title, description });
+  const startQuiz = (title: string, description: string, questions?: any[]) => {
+    setActiveQuizTopic({ title, description, questions });
     setMode(AppMode.QUIZ);
   };
 
@@ -208,6 +209,13 @@ const App: React.FC = () => {
           : [...prev.selectedTopics, topicId]
       };
     });
+  };
+
+  const handleSaveCustomModule = (mod: LessonModule) => {
+    setProgress(prev => ({
+      ...prev,
+      generatedModules: [mod, ...prev.generatedModules]
+    }));
   };
 
   const syncExternalMemory = (analysis: any) => {
@@ -257,7 +265,7 @@ const App: React.FC = () => {
       case AppMode.IMPORT_MEMORY:
         return <MemoryImportView onImport={syncExternalMemory} />;
       case AppMode.LESSONS:
-        return <LessonsView onStartLesson={startLesson} onStartQuiz={startQuiz} selectedTopics={progress.selectedTopics} onToggleTopic={toggleTopicFocus} />;
+        return <LessonsView customModules={progress.generatedModules} onSaveCustomModule={handleSaveCustomModule} onStartLesson={startLesson} onStartQuiz={startQuiz} selectedTopics={progress.selectedTopics} onToggleTopic={toggleTopicFocus} />;
       case AppMode.QUIZ:
         return activeQuizTopic ? <QuizView topic={activeQuizTopic} onComplete={() => setMode(AppMode.LESSONS)} /> : <DashboardView progress={progress} setMode={setMode} onStartLesson={startLesson} />;
       case AppMode.CORRECTION_LIBRARY:
