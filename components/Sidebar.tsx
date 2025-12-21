@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { AppMode } from '../types';
+import { AppMode, UserProgress, DifficultyLevel } from '../types';
 import { 
   MessageSquare, 
   Smartphone, 
@@ -12,16 +12,16 @@ import {
   RefreshCw,
   ChevronRight,
   TrendingUp,
-  Target,
   History
 } from 'lucide-react';
 
 interface SidebarProps {
   currentMode: AppMode;
   setMode: (mode: AppMode) => void;
+  progress: UserProgress;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentMode, setMode }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentMode, setMode, progress }) => {
   const groups = [
     {
       label: 'Learning Modes',
@@ -48,6 +48,15 @@ const Sidebar: React.FC<SidebarProps> = ({ currentMode, setMode }) => {
       ]
     }
   ];
+
+  const getDifficultyLabel = () => {
+    switch(progress.difficulty) {
+      case DifficultyLevel.BEGINNER: return 'Iniciante';
+      case DifficultyLevel.INTERMEDIATE: return 'Intermediário';
+      case DifficultyLevel.ADVANCED: return 'Avançado';
+      default: return 'Estudante';
+    }
+  };
 
   return (
     <aside className="w-[260px] bg-[#0f172a] text-white flex flex-col border-r border-slate-800/50 shrink-0 h-full relative z-50">
@@ -110,16 +119,19 @@ const Sidebar: React.FC<SidebarProps> = ({ currentMode, setMode }) => {
             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Nível Atual</span>
             <div className="flex items-center gap-1 text-emerald-400 text-xs font-black">
               <TrendingUp size={12} />
-              A2+
+              {progress.level}+
             </div>
           </div>
           <div className="space-y-1.5">
             <div className="flex justify-between text-[10px] font-bold text-slate-400">
-              <span>Progresso Semanal</span>
-              <span>65%</span>
+              <span>Progresso Geral</span>
+              <span>{Math.round((progress.lessonsCompleted.length / 10) * 100)}%</span>
             </div>
             <div className="h-1.5 bg-slate-700/50 rounded-full overflow-hidden">
-              <div className="h-full bg-emerald-500 w-[65%] rounded-full shadow-[0_0_10px_rgba(16,185,129,0.3)] transition-all group-hover:w-[68%]" />
+              <div 
+                className="h-full bg-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.3)] transition-all" 
+                style={{ width: `${Math.min(100, (progress.lessonsCompleted.length / 10) * 100)}%` }} 
+              />
             </div>
           </div>
         </div>
@@ -138,7 +150,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentMode, setMode }) => {
           </div>
           <div className="flex-1 overflow-hidden">
             <p className="text-sm font-black text-slate-200 truncate group-hover:text-white transition-colors">Chandler Bing</p>
-            <p className="text-[10px] font-bold text-slate-500 truncate uppercase tracking-tight">Estudante Intermediário</p>
+            <p className="text-[10px] font-bold text-slate-500 truncate uppercase tracking-tight">Estudante {getDifficultyLabel()}</p>
           </div>
           <ChevronRight size={16} className="text-slate-600 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all" />
         </div>

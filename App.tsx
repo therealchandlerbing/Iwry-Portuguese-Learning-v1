@@ -54,7 +54,7 @@ const App: React.FC = () => {
     {
       id: '1',
       role: 'assistant',
-      content: 'Bem-vindo ao Fala Comigo! Eu sou o Iwry. Vamos começar sua jornada para a fluência no Português do Brasil? Como posso te ajudar hoje?',
+      content: "Hi Chandler! I'm Iwry, your Brazilian Portuguese coach. Ready to start your journey to fluency? How can I help you today?",
       timestamp: new Date()
     }
   ]);
@@ -163,7 +163,7 @@ const App: React.FC = () => {
 
         addMessage({
           role: 'assistant',
-          content: `💡 Dica: No seu último texto, o ideal seria: "${correctionResult.corrected}". ${correctionResult.explanation}`,
+          content: `💡 Coach Tip: For your last input, the best way to say it is: "${correctionResult.corrected}". ${correctionResult.explanation}`,
           isCorrection: true,
           correctionData: correctionObj
         });
@@ -172,7 +172,6 @@ const App: React.FC = () => {
   };
 
   const setDifficulty = (diff: DifficultyLevel) => {
-    // Update progress level based on difficulty for better benchmark visual
     const levelMap = {
       [DifficultyLevel.BEGINNER]: 'A1',
       [DifficultyLevel.INTERMEDIATE]: 'A2',
@@ -292,7 +291,7 @@ const App: React.FC = () => {
     setMode(AppMode.DASHBOARD);
     handleUserMessage({
       role: 'assistant',
-      content: `Ótimo! Importei seu estudo sobre "${analysis.topic}". Já adicionei ${analysis.vocab.length} palavras novas ao seu vocabulário.`
+      content: `Awesome! I've imported your study on "${analysis.topic}". I've added ${analysis.vocab.length} new words to your vocabulary bank.`
     });
   };
 
@@ -329,7 +328,7 @@ const App: React.FC = () => {
     <div className="flex flex-col h-screen bg-slate-50 overflow-hidden text-slate-900 font-inter">
       <div className="flex flex-1 overflow-hidden h-full">
         <div className="hidden md:block h-full shrink-0">
-          <Sidebar currentMode={mode} setMode={setMode} />
+          <Sidebar progress={progress} currentMode={mode} setMode={setMode} />
         </div>
         <div className="flex-1 flex flex-col min-w-0 h-full bg-slate-50">
           <Header mode={mode} streak={progress.streak} difficulty={progress.difficulty} setDifficulty={setDifficulty} />

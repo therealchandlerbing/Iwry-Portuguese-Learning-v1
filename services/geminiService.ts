@@ -175,7 +175,7 @@ export async function generateChatResponse(
   mode: string,
   history: { role: string; content: string }[],
   userInput: string,
-  difficulty: DifficultyLevel = DifficultyLevel.INTERMEDIATE,
+  difficulty: DifficultyLevel = DifficultyLevel.BEGINNER,
   memories?: any[],
   image?: string,
   selectedTopics?: string[]
@@ -186,7 +186,11 @@ export async function generateChatResponse(
     parts: [{ text: h.content }]
   }));
   
-  const difficultyContext = `\nUSER CURRENT DIFFICULTY LEVEL: ${difficulty}. Adjust your vocabulary, pacing, and grammatical complexity to match this level perfectly.`;
+  const beginnerTranslationRule = difficulty === DifficultyLevel.BEGINNER 
+    ? "\nCRITICAL RULE: Since difficulty is BEGINNER, you MUST provide every Portuguese sentence with its English translation in parentheses immediately after. Example: 'Olá! (Hello!)'. Do not skip this."
+    : "";
+
+  const difficultyContext = `\nUSER CURRENT DIFFICULTY LEVEL: ${difficulty}. Adjust your vocabulary, pacing, and grammatical complexity to match this level perfectly. If beginner, stay simple.${beginnerTranslationRule}`;
   
   const memoryContext = memories && memories.length > 0 
     ? `\nRECENT MEMORIES OF CHANDLER'S EXTERNAL STUDY: ${memories.slice(0,3).map(m => m.topic).join(', ')}`
@@ -196,7 +200,9 @@ export async function generateChatResponse(
     ? `\nCURRENT TARGETED FOCUS AREAS: ${selectedTopics.join(', ')}. Try to incorporate vocabulary and scenarios related to these topics naturally.`
     : "";
 
-  const parts: any[] = [{ text: userInput + difficultyContext + memoryContext + focusContext }];
+  const coachingContext = "\nCOACHING ROLE: You are Chandler's coach. If the user uses English, acknowledge it and teach them how to say it in Portuguese.";
+
+  const parts: any[] = [{ text: userInput + difficultyContext + memoryContext + focusContext + coachingContext }];
   if (image) {
     parts.push({
       inlineData: {
@@ -217,7 +223,7 @@ export async function generateChatResponse(
     }
   });
 
-  return response.text || "Desculpe, não consegui processar isso.";
+  return response.text || "Sorry, I couldn't process that. (Desculpe, não consegui processar isso.)";
 }
 
 export async function textToSpeech(text: string): Promise<Uint8Array | null> {
@@ -252,7 +258,7 @@ export async function transcribeAudio(audioBase64: string): Promise<string> {
     model: 'gemini-3-flash-preview',
     contents: {
       parts: [
-        { text: "Transcreva este áudio em Português do Brasil. Apenas o texto." },
+        { text: "Transcreva este áudio em Português do Brasil ou Inglês. Apenas o texto." },
         { inlineData: { mimeType: 'audio/wav', data: audioBase64 } }
       ]
     }
