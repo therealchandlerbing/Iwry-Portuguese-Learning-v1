@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { UserProgress, AppMode } from '../types';
+import { UserProgress, AppMode, DifficultyLevel } from '../types';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
   Radar, RadarChart, PolarGrid, PolarAngleAxis
@@ -27,6 +27,130 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
   const [sessionCompleted, setSessionCompleted] = useState(false);
   const [audioLoading, setAudioLoading] = useState(false);
 
+  // Localization logic based on DifficultyLevel
+  const labels = useMemo(() => {
+    const l = {
+      [DifficultyLevel.BEGINNER]: {
+        welcome: "Hey, Chandler!",
+        level: "Current Level",
+        proficiency: "Proficiency",
+        active: "Active",
+        radarTitle: "SKILL RADAR",
+        radarSubtitle: "GENERAL COMPETENCE",
+        radarAvg: "TOTAL AVERAGE",
+        achievements: "Achievements",
+        gamification: "Gamification",
+        strategies: "Today's Strategies",
+        aiSuggestions: "AI Suggestions",
+        grammarStats: "Grammar Stats",
+        grammarSubtitle: "Mastery by Topic",
+        activeReview: "Active Review",
+        pendingItems: "pending items",
+        startModule: "Start Module",
+        startFlashcards: "Start Flashcards",
+        vocab: "Vocabulary",
+        min: "Minutes",
+        sessions: "Sessions",
+        corrections: "Corrections",
+        cultureTitle: "Living Culture",
+        cultureAction: "Explore with Iwry",
+        studyReview: "Review",
+        studyForgot: "Forgot",
+        studyRemember: "Remember!",
+        studyFinish: "Session Completed",
+        studyBack: "Back to Dashboard",
+        studyReveal: "Touch to reveal",
+        subjects: {
+          grammar: "GRAMMAR",
+          business: "BUSINESS",
+          social: "SOCIAL",
+          vocab: "VOCABULARY",
+          fluency: "FLUENCY",
+          listening: "LISTENING"
+        }
+      },
+      [DifficultyLevel.INTERMEDIATE]: {
+        welcome: "Fala, Chandler!",
+        level: "Nível Atual",
+        proficiency: "Proficiência",
+        active: "Ativo",
+        radarTitle: "RADAR DE HABILIDADES",
+        radarSubtitle: "COMPETÊNCIA GERAL",
+        radarAvg: "MÉDIA TOTAL",
+        achievements: "Conquistas",
+        gamification: "Gamificação",
+        strategies: "Estratégias de Hoje",
+        aiSuggestions: "IA Sugestões",
+        grammarStats: "Grammar Stats",
+        grammarSubtitle: "Domínio por Tópico",
+        activeReview: "Revisão Ativa",
+        pendingItems: "itens pendentes",
+        startModule: "Iniciar Módulo",
+        startFlashcards: "Iniciar Flashcards",
+        vocab: "Vocabulário",
+        min: "Minutos",
+        sessions: "Sessões",
+        corrections: "Correções",
+        cultureTitle: "Cultura Viva",
+        cultureAction: "Explorar com Iwry",
+        studyReview: "Revisão",
+        studyForgot: "Esqueci",
+        studyRemember: "Lembrei!",
+        studyFinish: "Sessão Concluída",
+        studyBack: "Retornar ao Painel",
+        studyReveal: "Toque para revelar",
+        subjects: {
+          grammar: "GRAMÁTICA",
+          business: "NEGÓCIOS",
+          social: "SOCIAL",
+          vocab: "VOCABULÁRIO",
+          fluency: "FLUIDEZ",
+          listening: "AUDIÇÃO"
+        }
+      },
+      [DifficultyLevel.ADVANCED]: {
+        welcome: "Fala, Chandler!",
+        level: "Nível Atual",
+        proficiency: "Proficiência",
+        active: "Ativo",
+        radarTitle: "RADAR DE HABILIDADES",
+        radarSubtitle: "COMPETÊNCIA GERAL",
+        radarAvg: "MÉDIA TOTAL",
+        achievements: "Conquistas",
+        gamification: "Gamificação",
+        strategies: "Estratégias de Hoje",
+        aiSuggestions: "IA Sugestões",
+        grammarStats: "Estatísticas Gramaticais",
+        grammarSubtitle: "Domínio por Tópico",
+        activeReview: "Revisão Ativa",
+        pendingItems: "itens pendentes",
+        startModule: "Iniciar Módulo",
+        startFlashcards: "Iniciar Flashcards",
+        vocab: "Vocabulário",
+        min: "Minutos",
+        sessions: "Sessões",
+        corrections: "Correções",
+        cultureTitle: "Cultura Viva",
+        cultureAction: "Explorar com Iwry",
+        studyReview: "Revisão",
+        studyForgot: "Esqueci",
+        studyRemember: "Lembrei!",
+        studyFinish: "Sessão Concluída",
+        studyBack: "Retornar ao Painel",
+        studyReveal: "Toque para ver",
+        subjects: {
+          grammar: "GRAMÁTICA",
+          business: "NEGÓCIOS",
+          social: "SOCIAL",
+          vocab: "VOCABULÁRIO",
+          fluency: "FLUIDEZ",
+          listening: "AUDIÇÃO"
+        }
+      }
+    };
+    return l[progress.difficulty] || l[DifficultyLevel.INTERMEDIATE];
+  }, [progress.difficulty]);
+
   useEffect(() => {
     if (newlyEarnedBadgeIds.length > 0) {
       const timer = setTimeout(() => {
@@ -43,7 +167,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
       .map(v => ({ 
         word: v.word, 
         meaning: v.meaning, 
-        source: 'Vocabulário'
+        source: progress.difficulty === DifficultyLevel.BEGINNER ? 'Vocabulary' : 'Vocabulário'
       }));
     
     const corrections = (progress.correctionHistory || [])
@@ -51,25 +175,25 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
       .map(c => ({ 
         word: c.incorrect, 
         meaning: c.corrected, 
-        source: 'Correção Salva'
+        source: progress.difficulty === DifficultyLevel.BEGINNER ? 'Saved Correction' : 'Correção Salva'
       }));
 
     return [...vocab, ...corrections].sort(() => Math.random() - 0.5);
-  }, [progress.vocabulary, progress.correctionHistory]);
+  }, [progress.vocabulary, progress.correctionHistory, progress.difficulty]);
 
   const radarData = useMemo(() => {
     const grammarValues = Object.values(progress.grammarMastery) as number[];
-    const avgGrammar = (grammarValues.reduce((a, b) => a + b, 0) / grammarValues.length) * 100;
+    const avgGrammar = (grammarValues.length > 0 ? (grammarValues.reduce((a, b) => a + b, 0) / grammarValues.length) : 0) * 100;
 
     return [
-      { subject: 'GRAMÁTICA', A: Math.round(Math.min(100, avgGrammar)), fullMark: 100 },
-      { subject: 'NEGÓCIOS', A: Math.round(Math.min(100, progress.lessonsCompleted.filter(l => l.includes('Business')).length * 35 + 45)), fullMark: 100 },
-      { subject: 'SOCIAL', A: Math.round(Math.min(100, progress.sessionCount * 2 + 40)), fullMark: 100 },
-      { subject: 'VOCABULÁRIO', A: Math.round(Math.min(100, (progress.vocabulary.length / 80) * 100)), fullMark: 100 },
-      { subject: 'FLUIDEZ', A: Math.round(Math.min(100, Math.max(0, 100 - (progress.correctionHistory.length * 2.5) + 30))), fullMark: 100 },
-      { subject: 'AUDIÇÃO', A: Math.round(Math.min(100, (progress.totalPracticeMinutes / 200) * 100 + 50)), fullMark: 100 },
+      { subject: labels.subjects.grammar, A: Math.round(Math.min(100, avgGrammar)), fullMark: 100 },
+      { subject: labels.subjects.business, A: Math.round(Math.min(100, progress.lessonsCompleted.filter(l => l.includes('Business')).length * 35 + 45)), fullMark: 100 },
+      { subject: labels.subjects.social, A: Math.round(Math.min(100, progress.sessionCount * 2 + 40)), fullMark: 100 },
+      { subject: labels.subjects.vocab, A: Math.round(Math.min(100, (progress.vocabulary.length / 80) * 100)), fullMark: 100 },
+      { subject: labels.subjects.fluency, A: Math.round(Math.min(100, Math.max(0, 100 - (progress.correctionHistory.length * 2.5) + 30))), fullMark: 100 },
+      { subject: labels.subjects.listening, A: Math.round(Math.min(100, (progress.totalPracticeMinutes / 200) * 100 + 50)), fullMark: 100 },
     ];
-  }, [progress]);
+  }, [progress, labels]);
 
   const totalAverage = useMemo(() => {
     const sum = radarData.reduce((acc, curr) => acc + curr.A, 0);
@@ -101,10 +225,10 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
   };
 
   const stats = [
-    { label: 'Vocabulário', value: progress.vocabulary.length, icon: <Book className="text-blue-500" size={18} />, color: 'bg-blue-50' },
-    { label: 'Minutos', value: progress.totalPracticeMinutes, icon: <Zap className="text-yellow-500" size={18} />, color: 'bg-yellow-50' },
-    { label: 'Sessões', value: progress.sessionCount, icon: <MessageCircle className="text-purple-500" size={18} />, color: 'bg-purple-50' },
-    { label: 'Correções', value: progress.correctionHistory.length, icon: <AlertCircle className="text-orange-500" size={18} />, color: 'bg-orange-50' }
+    { label: labels.vocab, value: progress.vocabulary.length, icon: <Book className="text-blue-500" size={18} />, color: 'bg-blue-50' },
+    { label: labels.min, value: progress.totalPracticeMinutes, icon: <Zap className="text-yellow-500" size={18} />, color: 'bg-yellow-50' },
+    { label: labels.sessions, value: progress.sessionCount, icon: <MessageCircle className="text-purple-500" size={18} />, color: 'bg-purple-50' },
+    { label: labels.corrections, value: progress.correctionHistory.length, icon: <AlertCircle className="text-orange-500" size={18} />, color: 'bg-orange-50' }
   ];
 
   if (isStudyMode) {
@@ -118,7 +242,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
                   <X size={28} />
                 </button>
                 <div className="flex flex-col">
-                  <span className="text-[10px] font-black text-emerald-500 tracking-[0.3em] uppercase">Revisão</span>
+                  <span className="text-[10px] font-black text-emerald-500 tracking-[0.3em] uppercase">{labels.studyReview}</span>
                   <span className="text-xs font-bold text-white/40">{currentCardIndex + 1}/{studyDeck.length}</span>
                 </div>
                 <div className="w-7 h-7" />
@@ -138,25 +262,27 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
                   <button onClick={(e) => playPronunciation(e, studyDeck[currentCardIndex]?.word)} className="p-4 bg-slate-100 text-slate-500 rounded-full hover:bg-emerald-600 hover:text-white transition-all">
                     {audioLoading ? <Loader2 size={24} className="animate-spin" /> : <Volume2 size={24} />}
                   </button>
-                  <p className="text-slate-300 text-[10px] font-black uppercase tracking-[0.4em] mt-8 animate-pulse text-center">Touch to reveal</p>
+                  <p className="text-slate-300 text-[10px] font-black uppercase tracking-[0.4em] mt-8 animate-pulse text-center">{labels.studyReveal}</p>
                 </div>
                 <div className="absolute inset-0 backface-hidden rotate-y-180 bg-slate-900 rounded-[3.5rem] shadow-2xl flex flex-col items-center justify-center p-12 text-center text-white space-y-8 overflow-hidden">
                    <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-emerald-500 via-transparent to-transparent pointer-events-none" />
                   <Star size={48} className="text-emerald-500 mb-2" />
                   <h3 className="text-3xl font-black tracking-tight leading-tight">{studyDeck[currentCardIndex]?.meaning}</h3>
-                  <p className="text-white/20 text-[10px] font-black uppercase tracking-[0.4em] mt-8">Flip back</p>
+                  <p className="text-white/20 text-[10px] font-black uppercase tracking-[0.4em] mt-8">
+                    {progress.difficulty === DifficultyLevel.BEGINNER ? 'Flip back' : 'Voltar'}
+                  </p>
                 </div>
               </div>
               <div className={`mt-10 flex gap-4 transition-all duration-500 ${isFlipped ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8 pointer-events-none'}`}>
-                <button onClick={() => { setIsFlipped(false); setTimeout(() => currentCardIndex < studyDeck.length - 1 ? setCurrentCardIndex(c => c + 1) : setSessionCompleted(true), 300); }} className="flex-1 bg-white/5 border border-white/10 hover:bg-white/10 text-white py-5 rounded-[2rem] font-black uppercase text-[10px] tracking-widest transition-all active:scale-95">Esqueci</button>
-                <button onClick={() => { setIsFlipped(false); setTimeout(() => currentCardIndex < studyDeck.length - 1 ? setCurrentCardIndex(c => c + 1) : setSessionCompleted(true), 300); }} className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-5 rounded-[2rem] font-black uppercase text-[10px] tracking-widest shadow-xl shadow-emerald-600/20 transition-all active:scale-95">Lembrei!</button>
+                <button onClick={() => { setIsFlipped(false); setTimeout(() => currentCardIndex < studyDeck.length - 1 ? setCurrentCardIndex(c => c + 1) : setSessionCompleted(true), 300); }} className="flex-1 bg-white/5 border border-white/10 hover:bg-white/10 text-white py-5 rounded-[2rem] font-black uppercase text-[10px] tracking-widest transition-all active:scale-95">{labels.studyForgot}</button>
+                <button onClick={() => { setIsFlipped(false); setTimeout(() => currentCardIndex < studyDeck.length - 1 ? setCurrentCardIndex(c => c + 1) : setSessionCompleted(true), 300); }} className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-5 rounded-[2rem] font-black uppercase text-[10px] tracking-widest shadow-xl shadow-emerald-600/20 transition-all active:scale-95">{labels.studyRemember}</button>
               </div>
             </div>
           ) : (
             <div className="text-center space-y-10 animate-in zoom-in-95 duration-700">
               <div className="w-40 h-40 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center mx-auto shadow-inner"><Trophy size={80} /></div>
-              <h3 className="text-4xl font-black text-white tracking-tighter">Sessão Concluída</h3>
-              <button onClick={() => setIsStudyMode(false)} className="w-full bg-white text-slate-950 py-6 rounded-[2.5rem] font-black uppercase tracking-[0.2em] text-xs shadow-2xl hover:bg-emerald-500 hover:text-white transition-all">Retornar ao Painel</button>
+              <h3 className="text-4xl font-black text-white tracking-tighter">{labels.studyFinish}</h3>
+              <button onClick={() => setIsStudyMode(false)} className="w-full bg-white text-slate-950 py-6 rounded-[2.5rem] font-black uppercase tracking-[0.2em] text-xs shadow-2xl hover:bg-emerald-500 hover:text-white transition-all">{labels.studyBack}</button>
             </div>
           )}
         </div>
@@ -169,15 +295,15 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tighter">Fala, Chandler!</h1>
-            <div className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm">Ativo</div>
+            <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tighter">{labels.welcome}</h1>
+            <div className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm">{labels.active}</div>
           </div>
-          <p className="text-slate-500 font-bold">Nível Atual: <span className="text-emerald-600 uppercase tracking-widest">{progress.difficulty}</span></p>
+          <p className="text-slate-500 font-bold">{labels.level}: <span className="text-emerald-600 uppercase tracking-widest">{progress.difficulty}</span></p>
         </div>
         <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-4 px-6 hover:shadow-md transition-shadow">
           <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-2xl shadow-inner"><Activity size={20} /></div>
           <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Proficiência</p>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{labels.proficiency}</p>
             <p className="text-lg font-black text-slate-900 leading-none">{progress.level}</p>
           </div>
         </div>
@@ -190,8 +316,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
           
           <div className="w-full mb-12 relative z-10">
              <div className="space-y-1">
-               <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em]">COMPETÊNCIA GERAL</h3>
-               <p className="text-sm font-black text-slate-900 uppercase tracking-tighter">RADAR DE HABILIDADES</p>
+               <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em]">{labels.radarSubtitle}</h3>
+               <p className="text-sm font-black text-slate-900 uppercase tracking-tighter">{labels.radarTitle}</p>
              </div>
              <div className="absolute top-0 right-0 p-3 bg-emerald-50 text-emerald-600 rounded-full shadow-inner border border-emerald-100/50">
                <Target size={20} />
@@ -295,7 +421,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
 
           <div className="w-full mt-auto pt-8 border-t border-slate-50 flex justify-between items-end">
              <div className="space-y-0.5">
-               <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">MÉDIA TOTAL</span>
+               <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{labels.radarAvg}</span>
                <div className="flex items-baseline gap-1">
                  <span className="text-4xl font-black text-slate-900 tracking-tighter">{totalAverage}</span>
                  <span className="text-lg font-black text-emerald-500">%</span>
@@ -317,7 +443,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
           }`}>
             {newlyEarnedBadgeIds.length > 0 && (
               <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-amber-500 text-white px-6 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.3em] shadow-lg animate-bounce z-50">
-                Novas Conquistas!
+                {progress.difficulty === DifficultyLevel.BEGINNER ? 'New Achievements!' : 'Novas Conquistas!'}
               </div>
             )}
             <div className="flex items-center justify-between mb-6">
@@ -327,9 +453,9 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
                 }`}>
                   <Award size={24} />
                 </div>
-                <h3 className="text-2xl font-black text-slate-800 tracking-tight">Conquistas</h3>
+                <h3 className="text-2xl font-black text-slate-800 tracking-tight">{labels.achievements}</h3>
               </div>
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Gamificação</span>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{labels.gamification}</span>
             </div>
             <BadgeShowcase badges={progress.badges} newlyEarnedBadgeIds={newlyEarnedBadgeIds} />
           </div>
@@ -338,27 +464,33 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
             <div className="flex items-center justify-between mb-10">
               <div className="flex items-center gap-4">
                 <div className="p-3 bg-purple-50 text-purple-600 rounded-[1.5rem] shadow-sm"><Lightbulb size={24} /></div>
-                <h3 className="text-2xl font-black text-slate-800 tracking-tight">Estratégias de Hoje</h3>
+                <h3 className="text-2xl font-black text-slate-800 tracking-tight">{labels.strategies}</h3>
               </div>
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">IA Sugestões</span>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{labels.aiSuggestions}</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 flex-1">
               <div className="p-8 bg-emerald-50/40 border border-emerald-100 rounded-[3rem] flex flex-col justify-between group hover:shadow-2xl hover:shadow-emerald-500/10 transition-all cursor-default overflow-hidden relative">
                   <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-100/50 rounded-full blur-2xl group-hover:scale-125 transition-transform" />
                   <div className="relative z-10">
                     <div className="w-fit p-3 bg-white rounded-2xl shadow-sm mb-4 group-hover:scale-110 transition-transform"><Target className="text-emerald-600" size={20} /></div>
-                    <h4 className="font-black text-slate-900 text-xl mb-2">Prática de Subjuntivo</h4>
-                    <p className="text-sm text-slate-600 leading-relaxed font-medium">Seu domínio aumentou 12%. Vamos consolidar em um cenário de negócios?</p>
+                    <h4 className="font-black text-slate-900 text-xl mb-2">
+                      {progress.difficulty === DifficultyLevel.BEGINNER ? 'Subjunctive Practice' : 'Prática de Subjuntivo'}
+                    </h4>
+                    <p className="text-sm text-slate-600 leading-relaxed font-medium">
+                      {progress.difficulty === DifficultyLevel.BEGINNER 
+                        ? 'Your mastery increased by 12%. Let\'s consolidate in a business scenario.' 
+                        : 'Seu domínio aumentou 12%. Vamos consolidar em um cenário de negócios?'}
+                    </p>
                   </div>
-                  <button onClick={() => onStartLesson?.("Quero uma prática focada em subjuntivo avançado.")} className="mt-8 py-4 bg-white text-emerald-600 text-[10px] font-black rounded-2xl border border-emerald-200 hover:bg-emerald-600 hover:text-white transition-all uppercase tracking-[0.2em] shadow-sm relative z-10">Iniciar Módulo</button>
+                  <button onClick={() => onStartLesson?.("Quero uma prática focada em subjuntivo avançado.")} className="mt-8 py-4 bg-white text-emerald-600 text-[10px] font-black rounded-2xl border border-emerald-200 hover:bg-emerald-600 hover:text-white transition-all uppercase tracking-[0.2em] shadow-sm relative z-10">{labels.startModule}</button>
               </div>
               <div onClick={() => setIsStudyMode(true)} className="p-8 bg-slate-900 border border-slate-800 rounded-[3rem] flex flex-col justify-center items-center text-center cursor-pointer hover:bg-slate-950 hover:shadow-2xl transition-all group relative overflow-hidden">
                   <div className="relative z-10 flex flex-col items-center">
                     <div className="p-5 bg-white/10 rounded-3xl shadow-inner mb-5 group-hover:scale-110 transition-transform"><Layers className="text-emerald-400" size={40} /></div>
-                    <h4 className="font-black text-white text-xl mb-1">Revisão Ativa</h4>
-                    <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.3em]">{studyDeck.length} itens pendentes</p>
+                    <h4 className="font-black text-white text-xl mb-1">{labels.activeReview}</h4>
+                    <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.3em]">{studyDeck.length} {labels.pendingItems}</p>
                   </div>
-                  <div className="mt-8 pt-6 border-t border-white/5 w-full text-[10px] font-black text-white/30 uppercase tracking-widest group-hover:text-emerald-500 transition-colors">Iniciar Flashcards</div>
+                  <div className="mt-8 pt-6 border-t border-white/5 w-full text-[10px] font-black text-white/30 uppercase tracking-widest group-hover:text-emerald-500 transition-colors">{labels.startFlashcards}</div>
               </div>
             </div>
           </div>
@@ -381,8 +513,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
         <div className="bg-white p-10 rounded-[3.5rem] shadow-sm border border-slate-100 flex flex-col">
           <div className="flex items-center justify-between mb-10">
             <div className="space-y-1">
-              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Estatísticas Gramaticais</h3>
-              <p className="text-xs font-black text-slate-900 uppercase">Domínio por Tópico</p>
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{labels.grammarStats}</h3>
+              <p className="text-xs font-black text-slate-900 uppercase">{labels.grammarSubtitle}</p>
             </div>
             <Target size={20} className="text-slate-300" />
           </div>
@@ -406,16 +538,20 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
            <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500 rounded-full -mr-40 -mt-40 opacity-[0.08] group-hover:scale-125 transition-transform duration-1000" />
            <div className="relative z-10 space-y-8">
               <div className="flex items-center gap-3 text-emerald-400 font-black uppercase tracking-[0.3em] text-[10px]">
-                <Globe size={20} /> Cultura Viva
+                <Globe size={20} /> {labels.cultureTitle}
               </div>
               <div className="space-y-3">
                 <h3 className="text-4xl font-black italic tracking-tighter leading-none">"O jeitinho brasileiro"</h3>
                 <p className="text-slate-400 text-lg leading-relaxed font-medium">
-                  Chandler, vamos entender a sutil diferença entre o "jeitinho" social e a "gambiarra" no contexto profissional de São Paulo.
+                  {progress.difficulty === DifficultyLevel.BEGINNER 
+                    ? 'Chandler, let\'s understand the subtle difference between the social "jeitinho" and professional workarounds in São Paulo.' 
+                    : 'Chandler, vamos entender a sutil diferença entre o "jeitinho" social e a "gambiarra" no contexto profissional de São Paulo.'}
                 </p>
               </div>
               <div className="pt-4">
-                 <button onClick={() => onStartLesson?.("Vamos discutir o 'jeitinho brasileiro' no mundo dos negócios.")} className="bg-emerald-600 text-white px-10 py-5 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] transition-all hover:bg-emerald-500 shadow-xl shadow-emerald-600/20 flex items-center gap-3 active:scale-95">Explorar com Iwry <ChevronRight size={18} /></button>
+                 <button onClick={() => onStartLesson?.("Vamos discutir o 'jeitinho brasileiro' no mundo dos negócios.")} className="bg-emerald-600 text-white px-10 py-5 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] transition-all hover:bg-emerald-500 shadow-xl shadow-emerald-600/20 flex items-center gap-3 active:scale-95">
+                  {labels.cultureAction} <ChevronRight size={18} />
+                 </button>
               </div>
            </div>
         </div>
