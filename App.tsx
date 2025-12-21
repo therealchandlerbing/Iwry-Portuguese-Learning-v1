@@ -20,25 +20,24 @@ import { analyzeSession, checkGrammar } from './services/geminiService';
 import { DEFAULT_BADGES } from './constants';
 
 const INITIAL_PROGRESS: UserProgress = {
-  level: 'A2',
-  difficulty: DifficultyLevel.INTERMEDIATE,
-  vocabulary: [
-    { word: 'Saudade', meaning: 'Nostalgic longing', confidence: 85, lastPracticed: new Date() },
-    { word: 'Gente', meaning: 'People/Us', confidence: 90, lastPracticed: new Date() },
-    { word: 'Com certeza', meaning: 'For sure', confidence: 70, lastPracticed: new Date() },
-    { word: 'Valeu', meaning: 'Thanks (informal)', confidence: 95, lastPracticed: new Date() },
-    { word: 'Inovação', meaning: 'Innovation', confidence: 45, lastPracticed: new Date() },
-    { word: 'Relatório', meaning: 'Report', confidence: 30, lastPracticed: new Date() }
-  ],
-  lessonsCompleted: ['Basic Greetings', 'Business Etiquette Intro'],
-  grammarMastery: { 'Present Tense': 0.7, 'Future Tense': 0.3, 'Subjunctive': 0.1 },
-  totalPracticeMinutes: 145,
+  level: 'A1',
+  difficulty: DifficultyLevel.BEGINNER,
+  vocabulary: [],
+  lessonsCompleted: [],
+  grammarMastery: { 
+    'Present Tense': 0.0, 
+    'Future Tense': 0.0, 
+    'Subjunctive': 0.0,
+    'Prepositions': 0.0,
+    'Pronouns': 0.0
+  },
+  totalPracticeMinutes: 0,
   memories: [],
   correctionHistory: [],
-  streak: 12,
+  streak: 0,
   selectedTopics: [],
   lastSessionDate: new Date(),
-  sessionCount: 24,
+  sessionCount: 0,
   generatedModules: [],
   badges: DEFAULT_BADGES
 };
@@ -55,18 +54,16 @@ const App: React.FC = () => {
     {
       id: '1',
       role: 'assistant',
-      content: 'Oi Chandler! Tudo bem? Ready for some Portuguese practice today? I see you haven\'t imported any new external studies today. Want to add something?',
+      content: 'Bem-vindo ao Fala Comigo! Eu sou o Iwry. Vamos começar sua jornada para a fluência no Português do Brasil? Como posso te ajudar hoje?',
       timestamp: new Date()
     }
   ]);
 
-  // Load progress from localStorage
   useEffect(() => {
     const saved = localStorage.getItem('fala_comigo_progress');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Fix date strings back to objects
         parsed.lastSessionDate = new Date(parsed.lastSessionDate);
         parsed.vocabulary = parsed.vocabulary.map((v: any) => ({ ...v, lastPracticed: new Date(v.lastPracticed) }));
         parsed.memories = parsed.memories.map((m: any) => ({ ...m, date: new Date(m.date) }));
@@ -87,12 +84,10 @@ const App: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Save progress on change
   useEffect(() => {
     localStorage.setItem('fala_comigo_progress', JSON.stringify(progress));
   }, [progress]);
 
-  // Badge Logic - Check whenever progress changes
   useEffect(() => {
     const checkBadges = () => {
       let updated = false;
@@ -113,7 +108,6 @@ const App: React.FC = () => {
             if (progress.lessonsCompleted.length >= badge.threshold) shouldUnlock = true;
             break;
           case 'MASTERY':
-            // Added explicit cast to number[] and defensive coding to fix 'unknown' type error (reported on line 116 but often associated with Object.values spread)
             const masteryValues = Object.values(progress.grammarMastery) as number[];
             const maxMastery = masteryValues.length > 0 ? Math.max(...masteryValues) : 0;
             if (maxMastery * 100 >= badge.threshold) shouldUnlock = true;
@@ -178,7 +172,13 @@ const App: React.FC = () => {
   };
 
   const setDifficulty = (diff: DifficultyLevel) => {
-    setProgress(prev => ({ ...prev, difficulty: diff }));
+    // Update progress level based on difficulty for better benchmark visual
+    const levelMap = {
+      [DifficultyLevel.BEGINNER]: 'A1',
+      [DifficultyLevel.INTERMEDIATE]: 'A2',
+      [DifficultyLevel.ADVANCED]: 'B2',
+    };
+    setProgress(prev => ({ ...prev, difficulty: diff, level: levelMap[diff] || prev.level }));
   };
 
   const startLesson = (prompt: string, customMode: AppMode = AppMode.CHAT) => {
@@ -292,7 +292,7 @@ const App: React.FC = () => {
     setMode(AppMode.DASHBOARD);
     handleUserMessage({
       role: 'assistant',
-      content: `Ótimo! Importei seu estudo sobre "${analysis.topic}". Já adicionei ${analysis.vocab.length} palavras novas ao seu vocabulário e notei que você está praticando "${analysis.grammar}". Vamos conversar sobre isso?`
+      content: `Ótimo! Importei seu estudo sobre "${analysis.topic}". Já adicionei ${analysis.vocab.length} palavras novas ao seu vocabulário.`
     });
   };
 
