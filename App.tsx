@@ -113,7 +113,9 @@ const App: React.FC = () => {
             if (progress.lessonsCompleted.length >= badge.threshold) shouldUnlock = true;
             break;
           case 'MASTERY':
-            const maxMastery = Math.max(...Object.values(progress.grammarMastery));
+            // Added explicit cast to number[] and defensive coding to fix 'unknown' type error (reported on line 116 but often associated with Object.values spread)
+            const masteryValues = Object.values(progress.grammarMastery) as number[];
+            const maxMastery = masteryValues.length > 0 ? Math.max(...masteryValues) : 0;
             if (maxMastery * 100 >= badge.threshold) shouldUnlock = true;
             break;
         }

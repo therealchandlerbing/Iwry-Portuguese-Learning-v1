@@ -27,12 +27,11 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
   const [sessionCompleted, setSessionCompleted] = useState(false);
   const [audioLoading, setAudioLoading] = useState(false);
 
-  // Clear newly earned badges after a delay when they are seen
   useEffect(() => {
     if (newlyEarnedBadgeIds.length > 0) {
       const timer = setTimeout(() => {
         clearNewlyEarned?.();
-      }, 10000); // 10 seconds of highlight
+      }, 10000);
       return () => clearTimeout(timer);
     }
   }, [newlyEarnedBadgeIds, clearNewlyEarned]);
@@ -63,14 +62,19 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
     const avgGrammar = (grammarValues.reduce((a, b) => a + b, 0) / grammarValues.length) * 100;
 
     return [
-      { subject: 'GRAMÁTICA', A: Math.round(avgGrammar), fullMark: 100 },
+      { subject: 'GRAMÁTICA', A: Math.round(Math.min(100, avgGrammar)), fullMark: 100 },
       { subject: 'NEGÓCIOS', A: Math.round(Math.min(100, progress.lessonsCompleted.filter(l => l.includes('Business')).length * 35 + 45)), fullMark: 100 },
       { subject: 'SOCIAL', A: Math.round(Math.min(100, progress.sessionCount * 2 + 40)), fullMark: 100 },
       { subject: 'VOCABULÁRIO', A: Math.round(Math.min(100, (progress.vocabulary.length / 80) * 100)), fullMark: 100 },
-      { subject: 'FLUIDEZ', A: Math.round(Math.max(0, 100 - (progress.correctionHistory.length * 2.5) + 30)), fullMark: 100 },
+      { subject: 'FLUIDEZ', A: Math.round(Math.min(100, Math.max(0, 100 - (progress.correctionHistory.length * 2.5) + 30))), fullMark: 100 },
       { subject: 'AUDIÇÃO', A: Math.round(Math.min(100, (progress.totalPracticeMinutes / 200) * 100 + 50)), fullMark: 100 },
     ];
   }, [progress]);
+
+  const totalAverage = useMemo(() => {
+    const sum = radarData.reduce((acc, curr) => acc + curr.A, 0);
+    return Math.round(sum / radarData.length);
+  }, [radarData]);
 
   const grammarChartData = useMemo(() => {
     return Object.entries(progress.grammarMastery).map(([name, value]) => ({
@@ -180,33 +184,39 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="bg-white p-6 sm:p-10 rounded-[3.5rem] shadow-sm border border-slate-100 flex flex-col items-center group relative overflow-hidden">
+        {/* SKILL RADAR CARD */}
+        <div className="bg-white p-6 sm:p-10 rounded-[3.5rem] shadow-sm border border-slate-100 flex flex-col items-center relative overflow-hidden">
           <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-50/40 rounded-full -mr-40 -mt-40 opacity-80 pointer-events-none blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-40 h-40 bg-blue-50/20 rounded-full -ml-20 -mb-20 opacity-50 pointer-events-none blur-2xl" />
           
-          <div className="w-full flex items-center justify-between mb-8 relative z-10">
+          <div className="w-full mb-12 relative z-10">
              <div className="space-y-1">
-               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Competência Geral</h3>
-               <p className="text-sm font-black text-slate-900 uppercase tracking-tighter">Radar de Habilidades</p>
+               <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em]">COMPETÊNCIA GERAL</h3>
+               <p className="text-sm font-black text-slate-900 uppercase tracking-tighter">RADAR DE HABILIDADES</p>
              </div>
-             <div className="p-3 bg-emerald-50 text-emerald-600 rounded-full shadow-inner border border-emerald-100/50">
+             <div className="absolute top-0 right-0 p-3 bg-emerald-50 text-emerald-600 rounded-full shadow-inner border border-emerald-100/50">
                <Target size={20} />
              </div>
           </div>
 
-          <div className="h-[400px] w-full relative z-10 flex items-center justify-center">
+          <div className="h-[420px] w-full relative z-10 flex items-center justify-center">
+            {/* Background pulsing rings to match image depth */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
+               <div className="w-[180px] h-[180px] border border-emerald-200 rounded-full animate-pulse" />
+               <div className="absolute w-[280px] h-[280px] border border-emerald-100 rounded-full" />
+            </div>
+
             <ResponsiveContainer width="100%" height="100%">
-              <RadarChart cx="50%" cy="50%" outerRadius="62%" data={radarData} margin={{ top: 20, right: 40, bottom: 20, left: 40 }}>
+              <RadarChart cx="50%" cy="50%" outerRadius="62%" data={radarData}>
                 <defs>
                   <linearGradient id="radarAreaGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.85} />
-                    <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0.3} />
+                    <stop offset="0%" stopColor="#10b981" stopOpacity={0.8} />
+                    <stop offset="100%" stopColor="#059669" stopOpacity={0.4} />
                   </linearGradient>
                 </defs>
                 
                 <PolarGrid 
-                  stroke="#f1f5f9" 
-                  strokeWidth={1.5} 
+                  stroke="#e2e8f0" 
+                  strokeWidth={1} 
                   radialLines={true} 
                   gridType="polygon"
                 />
@@ -222,19 +232,20 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
                     const dx = nx - ncx;
                     const dy = ny - ncy;
                     const distance = Math.sqrt(dx * dx + dy * dy);
-                    const labelPadding = 22;
+                    const labelPadding = 26;
                     const lx = ncx + (dx / distance) * (distance + labelPadding);
                     const ly = ncy + (dy / distance) * (distance + labelPadding);
+                    const value = radarData.find(d => d.subject === payload.value)?.A;
 
                     return (
                       <g transform={`translate(${lx},${ly})`}>
                         <text
                           textAnchor="middle"
                           dominantBaseline="middle"
-                          fill="#475569"
-                          fontSize={10}
+                          fill="#64748b"
+                          fontSize={9}
                           fontWeight={900}
-                          style={{ letterSpacing: '0.12em', fontStyle: 'italic', textShadow: '0 2px 4px rgba(0,0,0,0.05)' }}
+                          style={{ letterSpacing: '0.12em', fontStyle: 'italic' }}
                         >
                           {payload.value}
                         </text>
@@ -243,80 +254,62 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
                            textAnchor="middle"
                            dominantBaseline="middle"
                            fill="#10b981"
-                           fontSize={9}
+                           fontSize={10}
                            fontWeight={900}
                         >
-                           {radarData.find(d => d.subject === payload.value)?.A}%
+                           {value}%
                         </text>
                       </g>
                     );
                   }}
-                  axisLine={{ stroke: '#f1f5f9' }}
                 />
                 
                 <Radar 
                   name="Proficiência" 
                   dataKey="A" 
                   stroke="#10b981" 
-                  strokeWidth={5}
+                  strokeWidth={4}
                   fill="url(#radarAreaGradient)" 
-                  fillOpacity={0.7} 
+                  fillOpacity={0.6} 
                   dot={(props: any) => {
                     const { cx, cy } = props;
                     return (
                       <circle 
-                        cx={cx} cy={cy} r={6} 
-                        fill="#10b981" stroke="#fff" strokeWidth={3} 
+                        cx={cx} cy={cy} r={5} 
+                        fill="#10b981" stroke="#fff" strokeWidth={2.5} 
                         className="shadow-xl"
                       />
                     );
                   }}
-                  activeDot={{ r: 8, fill: '#059669', stroke: '#fff', strokeWidth: 3 }}
-                  animationBegin={200}
-                  animationDuration={1500}
                   isAnimationActive={true}
-                />
-                
-                <Tooltip 
-                  cursor={{ fill: '#f8fafc' }}
-                  contentStyle={{ 
-                    borderRadius: '1.5rem', 
-                    border: 'none', 
-                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-                    fontSize: '12px', 
-                    fontWeight: '900',
-                    background: 'rgba(255,255,255,0.9)',
-                    backdropFilter: 'blur(12px)',
-                    padding: '12px 16px'
-                  }}
-                  itemStyle={{ color: '#0f172a' }}
+                  animationDuration={1800}
                 />
               </RadarChart>
             </ResponsiveContainer>
 
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full border-[8px] border-white bg-emerald-500 shadow-[0_15px_30px_-5px_rgba(16,185,129,0.5)] z-20 flex items-center justify-center ring-8 ring-emerald-50/50">
-               <div className="w-4 h-4 bg-white rounded-full animate-pulse shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
-               <div className="absolute inset-0 border-2 border-white/20 rounded-full scale-150 animate-ping duration-[3s]" />
+            {/* Central aesthetic glow */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-emerald-500 shadow-[0_0_40px_rgba(16,185,129,0.5)] z-20 flex items-center justify-center ring-[10px] ring-white">
+               <div className="w-3 h-3 bg-white rounded-full animate-pulse" />
             </div>
           </div>
 
-          <div className="w-full mt-2 pt-8 border-t border-slate-50 flex justify-between items-center px-6">
+          <div className="w-full mt-auto pt-8 border-t border-slate-50 flex justify-between items-end">
              <div className="space-y-0.5">
-               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Média Total</span>
+               <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">MÉDIA TOTAL</span>
                <div className="flex items-baseline gap-1">
-                 <span className="text-3xl font-black text-slate-900 tracking-tighter">74</span>
-                 <span className="text-sm font-black text-emerald-500">%</span>
+                 <span className="text-4xl font-black text-slate-900 tracking-tighter">{totalAverage}</span>
+                 <span className="text-lg font-black text-emerald-500">%</span>
                </div>
              </div>
-             <div className="p-3 bg-emerald-50 rounded-2xl shadow-sm border border-emerald-100 flex flex-col items-center">
+             <div className="p-4 bg-emerald-50 rounded-2xl shadow-sm border border-emerald-100 flex flex-col items-center">
                 <Sparkles size={20} className="text-emerald-500 animate-pulse" />
-                <span className="text-[8px] font-black text-emerald-600 mt-1 uppercase">Top 5%</span>
+                <span className="text-[9px] font-black text-emerald-600 mt-1 uppercase tracking-tighter">TOP 5%</span>
              </div>
           </div>
         </div>
 
         <div className="lg:col-span-2 space-y-8 flex flex-col h-full">
-          {/* Badge Showcase - Section with highlight animation if new badges earned */}
+          {/* Badge Showcase */}
           <div className={`bg-white p-8 rounded-[3.5rem] shadow-sm border transition-all duration-1000 flex flex-col flex-1 relative ${
             newlyEarnedBadgeIds.length > 0 
               ? 'border-amber-400 ring-4 ring-amber-400/20 shadow-xl shadow-amber-500/10 scale-[1.01]' 

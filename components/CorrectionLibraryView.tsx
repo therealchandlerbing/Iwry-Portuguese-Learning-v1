@@ -13,7 +13,8 @@ const CorrectionLibraryView: React.FC<CorrectionLibraryViewProps> = ({ history, 
     onStartReview(`Quero praticar especificamente a categoria gramatical: "${category}". Use meus erros anteriores como exemplos.`);
   };
 
-  const categories = Array.from(new Set(history.map(c => c.category)));
+  // Fixed 'unknown' type error on line 89 by ensuring categories is typed as string[]
+  const categories = Array.from(new Set(history.map(c => c.category))) as string[];
 
   return (
     <div className="h-full flex flex-col bg-slate-50 overflow-y-auto pb-32">
