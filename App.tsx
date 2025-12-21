@@ -228,11 +228,11 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen bg-slate-50 overflow-hidden text-slate-900 font-inter">
-      <div className="flex flex-1 overflow-hidden">
-        <div className="hidden md:block">
+      <div className="flex flex-1 overflow-hidden h-full">
+        <div className="hidden md:block h-full shrink-0">
           <Sidebar currentMode={mode} setMode={setMode} />
         </div>
-        <div className="flex-1 flex flex-col min-w-0 h-full">
+        <div className="flex-1 flex flex-col min-w-0 h-full bg-slate-50">
           <Header mode={mode} streak={progress.streak} />
           <main className="flex-1 relative overflow-hidden">
             {renderContent()}
