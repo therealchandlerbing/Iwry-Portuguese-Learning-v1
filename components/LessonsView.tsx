@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, BookOpen, Briefcase, Globe, Users, Plane, GraduationCap, Info } from 'lucide-react';
+import { ChevronLeft, ChevronRight, BookOpen, Briefcase, Globe, Users, Plane, GraduationCap, Info, Target, CheckCircle2, ClipboardCheck, Coffee, MapPin } from 'lucide-react';
 import { LessonModule, LessonSubModule } from '../types';
 
 const MODULES: LessonModule[] = [
@@ -37,6 +37,42 @@ const MODULES: LessonModule[] = [
         description: 'Handling pushback and finding common ground.', 
         prompt: 'We are negotiating a deadline. I am pushing for sooner, you need more time. Let\'s find a middle ground in Portuguese.',
         grammarExplanation: 'Use the "Imperfeito do Indicativo" for politeness: "Eu queria (not quero) pedir um prazo maior." It sounds like "I was wondering if I could ask..."'
+      }
+    ]
+  },
+  {
+    id: 'survival',
+    title: 'Daily Life & Survival',
+    icon: 'Coffee',
+    description: 'Essential survival skills for navigating Brazil effortlessly.',
+    submodules: [
+      { 
+        id: 'd1', 
+        title: 'Ordering at a Padaria', 
+        description: 'The art of the Brazilian bakery: from pão de queijo to pingado.', 
+        prompt: 'I am the atendente at a traditional padaria in SP. Practice ordering a "média" and a "pão na chapa".',
+        grammarExplanation: 'Say "Eu vou querer..." or "Me vê um..." for a natural local feel. "Capi" is short for Capuccino in some places, but "Pingado" is the classic coffee with milk.'
+      },
+      { 
+        id: 'd2', 
+        title: 'Asking for Directions', 
+        description: 'Finding your way around the city without a GPS.', 
+        prompt: 'You are lost in Avenida Paulista. Ask me for directions to the nearest Metro station or the MASP museum.',
+        grammarExplanation: 'Use "Como eu chego em...?" or "Onde fica...?". Brazilians often give directions using "Virar" (to turn) and "Seguir reto" (go straight).'
+      },
+      { 
+        id: 'd3', 
+        title: 'Public Transport', 
+        description: 'Navigating the Metro, CPTM, and "Busão" like a local.', 
+        prompt: 'Scenario: You are at the ticket office of a Metro station. Ask how to get to a specific destination and which line to take.',
+        grammarExplanation: 'Use the preposition "De" for transport: "Vou de metrô", "Vou de ônibus". "Baldeação" is the word for transferring between lines.'
+      },
+      { 
+        id: 'd4', 
+        title: 'At the Pharmacy', 
+        description: 'Describing basic health needs and symptoms.', 
+        prompt: 'You have a headache and need some medicine. Go to a Brazilian farmácia and explain your symptoms to the pharmacist.',
+        grammarExplanation: 'The verb "Ter" is used for symptoms: "Tô com dor de cabeça" (I have a headache). Use "Estou sentindo..." for feelings.'
       }
     ]
   },
@@ -219,50 +255,17 @@ const MODULES: LessonModule[] = [
         grammarExplanation: 'Brazilians use many English loanwords in tech (start-up, mindset, budget) but pronounce them with a distinct accent (start-úpi).'
       }
     ]
-  },
-  {
-    id: 'advanced-grammar',
-    title: 'Advanced Grammar',
-    icon: 'GraduationCap',
-    description: 'Deep dive into complex structures for higher fluency.',
-    submodules: [
-      { 
-        id: 'ag1', 
-        title: 'The Passive Voice', 
-        description: 'Shifting focus from the actor to the action (Voz Passiva).', 
-        prompt: 'Let\'s practice the passive voice. Describe a series of historical events or innovation processes using "ser + particípio".',
-        grammarExplanation: 'Formation: [Subject] + [Ser/Estar] + [Past Participle]. Example: "O relatório foi escrito (not escreveu) pelo Chandler." Used often in formal reports and academic contexts.'
-      },
-      { 
-        id: 'ag2', 
-        title: 'Mastering the Gerund', 
-        description: 'Using "-ndo" to describe ongoing actions and simultaneous events.', 
-        prompt: 'Tell me what is happening right now in your SP office. Use at least 5 different gerunds to describe the scene.',
-        grammarExplanation: 'In Brazil, the gerund is almost always preferred over the European "a + infinitive". "Estou fazendo" is natural. Note: Avoid "Gerundismo" (excessive future gerunds) in professional SP like "vou estar retornando".'
-      },
-      { 
-        id: 'ag3', 
-        title: 'Irregular Past Tenses', 
-        description: 'Conquering the tricky "Pretérito Perfeito" of irregular verbs.', 
-        prompt: 'Let\'s practice a quiz on irregular past verbs. I will ask you what you DID yesterday using verbs like Trazer, Saber, Ver, and Por.',
-        grammarExplanation: 'These verbs change their stems completely. Trazer -> Trouxe, Saber -> Soube, Pôr -> Pus, Dizer -> Disse. They are essential for accurate storytelling in professional debriefs.'
-      },
-      { 
-        id: 'ag4', 
-        title: 'Personal Infinitive', 
-        description: 'The unique Portuguese structure for clarity in action.', 
-        prompt: 'Let\'s practice the Personal Infinitive. We are setting goals for a team. "É importante nós terminarmos..."',
-        grammarExplanation: 'This allows the infinitive to be conjugated to show WHO is acting. Use it after impersonal expressions like "É bom...", "Para...", or "Sem...". Ex: "Para eles chegarem (not chegar) a tempo."'
-      }
-    ]
   }
 ];
 
 interface LessonsViewProps {
   onStartLesson: (prompt: string) => void;
+  onStartQuiz: (title: string, description: string) => void;
+  selectedTopics: string[];
+  onToggleTopic: (topicId: string) => void;
 }
 
-const LessonsView: React.FC<LessonsViewProps> = ({ onStartLesson }) => {
+const LessonsView: React.FC<LessonsViewProps> = ({ onStartLesson, onStartQuiz, selectedTopics, onToggleTopic }) => {
   const [selectedModule, setSelectedModule] = useState<LessonModule | null>(null);
 
   const getIcon = (name: string) => {
@@ -273,6 +276,8 @@ const LessonsView: React.FC<LessonsViewProps> = ({ onStartLesson }) => {
       case 'Users': return <Users size={24} />;
       case 'Plane': return <Plane size={24} />;
       case 'BookOpen': return <BookOpen size={24} />;
+      case 'Coffee': return <Coffee size={24} />;
+      case 'MapPin': return <MapPin size={24} />;
       default: return <BookOpen size={24} />;
     }
   };
@@ -300,36 +305,60 @@ const LessonsView: React.FC<LessonsViewProps> = ({ onStartLesson }) => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {selectedModule.submodules.map((sub) => (
-              <div
-                key={sub.id}
-                className="group p-6 bg-white border border-slate-200 rounded-3xl text-left hover:border-emerald-500 hover:shadow-xl hover:shadow-emerald-500/5 transition-all flex flex-col justify-between"
-              >
-                <div>
-                  <h3 className="font-bold text-lg text-slate-800 group-hover:text-emerald-600 mb-2">{sub.title}</h3>
-                  <p className="text-sm text-slate-500 leading-relaxed mb-4">{sub.description}</p>
-                  
-                  {sub.grammarExplanation && (
-                    <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100 mb-6">
-                      <div className="flex items-center gap-2 text-emerald-700 mb-2">
-                        <Info size={14} className="shrink-0" />
-                        <span className="text-[11px] font-bold uppercase tracking-wider">Grammar Snapshot</span>
-                      </div>
-                      <p className="text-xs text-emerald-800/80 leading-relaxed italic">
-                        {sub.grammarExplanation}
-                      </p>
-                    </div>
-                  )}
-                </div>
-                
-                <button
-                  onClick={() => onStartLesson(sub.prompt)}
-                  className="w-full bg-slate-100 group-hover:bg-emerald-600 group-hover:text-white text-slate-500 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+            {selectedModule.submodules.map((sub) => {
+              const isTargeted = selectedTopics.includes(sub.id);
+              return (
+                <div
+                  key={sub.id}
+                  className={`group p-6 bg-white border rounded-3xl text-left transition-all flex flex-col justify-between ${
+                    isTargeted ? 'border-emerald-500 shadow-xl shadow-emerald-500/5' : 'border-slate-200 hover:border-emerald-300'
+                  }`}
                 >
-                  Launch Practice <ChevronRight size={14} />
-                </button>
-              </div>
-            ))}
+                  <div>
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="font-bold text-lg text-slate-800 group-hover:text-emerald-600 leading-tight">{sub.title}</h3>
+                      <button 
+                        onClick={() => onToggleTopic(sub.id)}
+                        className={`p-2 rounded-xl transition-all ${
+                          isTargeted ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-slate-50 text-slate-400 hover:bg-emerald-50 hover:text-emerald-500'
+                        }`}
+                        title={isTargeted ? "Remove target" : "Target for future practice"}
+                      >
+                        {isTargeted ? <CheckCircle2 size={18} /> : <Target size={18} />}
+                      </button>
+                    </div>
+                    <p className="text-sm text-slate-500 leading-relaxed mb-4">{sub.description}</p>
+                    
+                    {sub.grammarExplanation && (
+                      <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100 mb-6">
+                        <div className="flex items-center gap-2 text-emerald-700 mb-2">
+                          <Info size={14} className="shrink-0" />
+                          <span className="text-[11px] font-bold uppercase tracking-wider">Grammar Snapshot</span>
+                        </div>
+                        <p className="text-xs text-emerald-800/80 leading-relaxed italic">
+                          {sub.grammarExplanation}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex flex-col gap-2">
+                    <button
+                      onClick={() => onStartLesson(sub.prompt)}
+                      className="w-full bg-slate-100 group-hover:bg-emerald-600 group-hover:text-white text-slate-500 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                    >
+                      Practice Chat <ChevronRight size={14} />
+                    </button>
+                    <button
+                      onClick={() => onStartQuiz(sub.title, sub.description)}
+                      className="w-full border border-slate-200 hover:border-emerald-200 hover:bg-emerald-50 text-slate-400 hover:text-emerald-600 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                    >
+                      Knowledge Check <ClipboardCheck size={14} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

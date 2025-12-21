@@ -28,5 +28,19 @@ export const SYSTEM_INSTRUCTIONS: Record<string, string> = {
   1. Summarize the main topic.
   2. Extract 5 key vocabulary words/phrases with English meanings.
   3. Identify 1 grammar pattern used.
-  Return as JSON: { "topic": string, "vocab": [{ "word": string, "meaning": string }], "grammar": string }`
+  Return as JSON: { "topic": string, "vocab": [{ "word": string, "meaning": string }], "grammar": string }`,
+  QUIZ_GENERATOR: `You are a quiz master for Brazilian Portuguese. 
+  Create a 3-question multiple choice quiz based on the provided topic and description.
+  Focus on common mistakes, regional variations (SP/Rio), or business contexts.
+  Return strictly JSON in this format: 
+  {
+    "questions": [
+      {
+        "question": "string in Portuguese",
+        "options": ["option 1", "option 2", "option 3", "option 4"],
+        "answer": number (index 0-3),
+        "explanation": "brief explanation in English/Portuguese mix"
+      }
+    ]
+  }`
 };

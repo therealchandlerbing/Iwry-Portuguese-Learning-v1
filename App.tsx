@@ -13,6 +13,7 @@ import LoadingScreen from './components/LoadingScreen';
 import EntryScreen from './components/EntryScreen';
 import LessonsView from './components/LessonsView';
 import ReviewSessionView from './components/ReviewSessionView';
+import QuizView from './components/QuizView';
 
 const INITIAL_PROGRESS: UserProgress = {
   level: 'A2',
@@ -28,7 +29,8 @@ const INITIAL_PROGRESS: UserProgress = {
   grammarMastery: { 'Present Tense': 0.7, 'Future Tense': 0.3, 'Subjunctive': 0.1 },
   totalPracticeMinutes: 145,
   memories: [],
-  streak: 12
+  streak: 12,
+  selectedTopics: []
 };
 
 const App: React.FC = () => {
@@ -36,6 +38,7 @@ const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [mode, setMode] = useState<AppMode>(AppMode.DASHBOARD);
   const [progress, setProgress] = useState<UserProgress>(INITIAL_PROGRESS);
+  const [activeQuizTopic, setActiveQuizTopic] = useState<{title: string, description: string} | null>(null);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -65,6 +68,23 @@ const App: React.FC = () => {
     addMessage({
       role: 'user',
       content: prompt.startsWith('I want to') ? prompt : `Quero começar a aula: ${prompt}`
+    });
+  };
+
+  const startQuiz = (title: string, description: string) => {
+    setActiveQuizTopic({ title, description });
+    setMode(AppMode.QUIZ);
+  };
+
+  const toggleTopicFocus = (topicId: string) => {
+    setProgress(prev => {
+      const alreadySelected = prev.selectedTopics.includes(topicId);
+      return {
+        ...prev,
+        selectedTopics: alreadySelected 
+          ? prev.selectedTopics.filter(id => id !== topicId)
+          : [...prev.selectedTopics, topicId]
+      };
     });
   };
 
@@ -107,7 +127,7 @@ const App: React.FC = () => {
       case AppMode.TEXT_MODE:
       case AppMode.QUICK_HELP:
       case AppMode.REVIEW_SESSION:
-        return <ChatView mode={mode} messages={messages} onAddMessage={addMessage} memories={progress.memories} />;
+        return <ChatView mode={mode} messages={messages} onAddMessage={addMessage} memories={progress.memories} selectedTopics={progress.selectedTopics} />;
       case AppMode.LIVE_VOICE:
         return <LiveVoiceView memories={progress.memories} />;
       case AppMode.IMAGE_ANALYSIS:
@@ -115,7 +135,9 @@ const App: React.FC = () => {
       case AppMode.IMPORT_MEMORY:
         return <MemoryImportView onImport={syncExternalMemory} />;
       case AppMode.LESSONS:
-        return <LessonsView onStartLesson={startLesson} />;
+        return <LessonsView onStartLesson={startLesson} onStartQuiz={startQuiz} selectedTopics={progress.selectedTopics} onToggleTopic={toggleTopicFocus} />;
+      case AppMode.QUIZ:
+        return activeQuizTopic ? <QuizView topic={activeQuizTopic} onComplete={() => setMode(AppMode.LESSONS)} /> : <DashboardView progress={progress} setMode={setMode} />;
       default:
         return <ReviewSessionView progress={progress} onStartReview={(p) => startLesson(p, AppMode.REVIEW_SESSION)} />;
     }

@@ -1,6 +1,7 @@
 
 import { GoogleGenAI, Modality, GenerateContentResponse, LiveServerMessage, Type } from "@google/genai";
 import { SYSTEM_INSTRUCTIONS } from "../constants";
+import { QuizQuestion } from "../types";
 
 export const getGeminiClient = () => {
   return new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -49,12 +50,33 @@ export async function analyzeMemory(content: string, isImage: boolean = false): 
   return JSON.parse(response.text || "{}");
 }
 
+export async function generateQuiz(topicTitle: string, description: string): Promise<QuizQuestion[]> {
+  const ai = getGeminiClient();
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: [{ role: 'user', parts: [{ text: `Topic: ${topicTitle}. Description: ${description}` }] }],
+    config: {
+      systemInstruction: SYSTEM_INSTRUCTIONS.QUIZ_GENERATOR,
+      responseMimeType: "application/json",
+    }
+  });
+
+  try {
+    const parsed = JSON.parse(response.text || '{"questions": []}');
+    return parsed.questions;
+  } catch (e) {
+    console.error("Failed to parse quiz", e);
+    return [];
+  }
+}
+
 export async function generateChatResponse(
   mode: string,
   history: { role: string; content: string }[],
   userInput: string,
   memories?: any[],
-  image?: string
+  image?: string,
+  selectedTopics?: string[]
 ): Promise<string> {
   const ai = getGeminiClient();
   const contents = history.map(h => ({
@@ -66,7 +88,11 @@ export async function generateChatResponse(
     ? `\nRECENT MEMORIES OF CHANDLER'S EXTERNAL STUDY: ${memories.slice(0,3).map(m => m.topic).join(', ')}`
     : "";
 
-  const parts: any[] = [{ text: userInput + memoryContext }];
+  const focusContext = selectedTopics && selectedTopics.length > 0
+    ? `\nCURRENT TARGETED FOCUS AREAS: ${selectedTopics.join(', ')}. Try to incorporate vocabulary and scenarios related to these topics naturally.`
+    : "";
+
+  const parts: any[] = [{ text: userInput + memoryContext + focusContext }];
   if (image) {
     parts.push({
       inlineData: {

@@ -8,7 +8,8 @@ export enum AppMode {
   REVIEW_SESSION = 'REVIEW_SESSION',
   QUICK_HELP = 'QUICK_HELP',
   IMAGE_ANALYSIS = 'IMAGE_ANALYSIS',
-  IMPORT_MEMORY = 'IMPORT_MEMORY'
+  IMPORT_MEMORY = 'IMPORT_MEMORY',
+  QUIZ = 'QUIZ'
 }
 
 export interface Message {
@@ -46,6 +47,7 @@ export interface UserProgress {
   totalPracticeMinutes: number;
   memories: MemoryEntry[];
   streak: number;
+  selectedTopics: string[]; // IDs or Titles of targeted lesson submodules
 }
 
 export interface Correction {
@@ -68,4 +70,11 @@ export interface LessonModule {
   icon: string;
   description: string;
   submodules: LessonSubModule[];
+}
+
+export interface QuizQuestion {
+  question: string;
+  options: string[];
+  answer: number; // index of correct option
+  explanation: string;
 }

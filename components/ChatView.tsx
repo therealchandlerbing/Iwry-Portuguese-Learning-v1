@@ -1,16 +1,25 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { AppMode, Message } from '../types';
-import { Send, Mic, Volume2, Loader2, Square } from 'lucide-react';
+import { Send, Mic, Volume2, Loader2, Square, Target, MapPin, Coffee, Utensils, ShoppingBag, Sparkles } from 'lucide-react';
 import { generateChatResponse, textToSpeech, transcribeAudio, decodeAudioData } from '../services/geminiService';
 
 interface ChatViewProps {
   mode: AppMode;
   messages: Message[];
   onAddMessage: (msg: Omit<Message, 'id' | 'timestamp'>) => void;
+  memories?: any[];
+  selectedTopics?: string[];
 }
 
-const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage }) => {
+const SCENARIO_STARTERS = [
+  { id: 'food', label: 'Order Food', icon: <Utensils size={16} />, prompt: "I'd like to practice ordering food at a restaurant. You are the waiter and I'm the customer." },
+  { id: 'directions', label: 'Directions', icon: <MapPin size={16} />, prompt: "I'm lost in the city. Can you help me practice asking for directions? I'll start." },
+  { id: 'padaria', label: 'Bakery', icon: <Coffee size={16} />, prompt: "Let's roleplay at a traditional Brazilian Padaria. You are the atendente." },
+  { id: 'shopping', label: 'Shopping', icon: <ShoppingBag size={16} />, prompt: "I want to practice shopping for clothes at a mall. You are the salesperson." },
+];
+
+const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, memories, selectedTopics }) => {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -37,7 +46,8 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage }) => 
 
     try {
       const chatHistory = messages.map(m => ({ role: m.role, content: m.content }));
-      const response = await generateChatResponse(mode, chatHistory, text);
+      // Pass selected topics to provide targeted practice context
+      const response = await generateChatResponse(mode, chatHistory, text, memories, undefined, selectedTopics);
       onAddMessage({ role: 'assistant', content: response });
     } catch (err) {
       console.error(err);
@@ -105,7 +115,51 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage }) => 
 
   return (
     <div className="flex flex-col h-full bg-white sm:bg-slate-50">
+      {/* Target Focus Indicator */}
+      <div className="sticky top-0 z-30">
+        {selectedTopics && selectedTopics.length > 0 && (
+          <div className="bg-emerald-50 border-b border-emerald-100 px-4 py-2 flex items-center gap-3 overflow-x-auto whitespace-nowrap scrollbar-hide">
+            <div className="flex items-center gap-2 text-emerald-700 font-bold text-[10px] uppercase tracking-widest shrink-0">
+              <Target size={14} /> Focus:
+            </div>
+            <div className="flex gap-2">
+              {selectedTopics.map(topicId => (
+                <span key={topicId} className="bg-white text-emerald-600 px-2 py-0.5 rounded-full border border-emerald-200 text-[10px] font-bold">
+                  {topicId}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-4 sm:space-y-6 pb-20">
+        {messages.length < 2 && (
+          <div className="py-6 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="text-center space-y-2">
+              <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-2">
+                <Sparkles size={24} />
+              </div>
+              <h3 className="font-bold text-slate-800">Choose a Scenario</h3>
+              <p className="text-xs text-slate-500 max-w-xs mx-auto">Select a situation to jump-start your practice session with Iwry.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3 max-w-md mx-auto">
+              {SCENARIO_STARTERS.map((scenario) => (
+                <button
+                  key={scenario.id}
+                  onClick={() => handleSend(scenario.prompt)}
+                  className="bg-white border border-slate-200 p-4 rounded-2xl flex flex-col items-center gap-2 hover:border-emerald-500 hover:shadow-lg transition-all text-center group"
+                >
+                  <div className="p-2 bg-slate-50 text-slate-400 group-hover:bg-emerald-50 group-hover:text-emerald-600 rounded-xl transition-colors">
+                    {scenario.icon}
+                  </div>
+                  <span className="text-xs font-bold text-slate-700">{scenario.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {messages.map((msg) => (
           <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[88%] sm:max-w-[80%] group ${msg.role === 'user' ? 'order-2' : ''}`}>
