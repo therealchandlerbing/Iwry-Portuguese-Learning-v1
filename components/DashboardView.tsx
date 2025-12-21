@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { UserProgress, AppMode } from '../types';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
@@ -7,22 +7,35 @@ import {
 } from 'recharts';
 import { 
   Trophy, Zap, Book, Star, MessageCircle, 
-  Target, Layers, ChevronRight, Sparkles, Volume2, Loader2, Lightbulb, Activity, Globe, AlertCircle, X
+  Target, Layers, ChevronRight, Sparkles, Volume2, Loader2, Lightbulb, Activity, Globe, AlertCircle, X, Award
 } from 'lucide-react';
 import { textToSpeech, decodeAudioData } from '../services/geminiService';
+import BadgeShowcase from './BadgeShowcase';
 
 interface DashboardViewProps {
   progress: UserProgress;
   setMode: (mode: AppMode) => void;
   onStartLesson?: (prompt: string) => void;
+  newlyEarnedBadgeIds?: string[];
+  clearNewlyEarned?: () => void;
 }
 
-const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStartLesson }) => {
+const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStartLesson, newlyEarnedBadgeIds = [], clearNewlyEarned }) => {
   const [isStudyMode, setIsStudyMode] = useState(false);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [sessionCompleted, setSessionCompleted] = useState(false);
   const [audioLoading, setAudioLoading] = useState(false);
+
+  // Clear newly earned badges after a delay when they are seen
+  useEffect(() => {
+    if (newlyEarnedBadgeIds.length > 0) {
+      const timer = setTimeout(() => {
+        clearNewlyEarned?.();
+      }, 10000); // 10 seconds of highlight
+      return () => clearTimeout(timer);
+    }
+  }, [newlyEarnedBadgeIds, clearNewlyEarned]);
 
   const studyDeck = useMemo(() => {
     const vocab = [...progress.vocabulary]
@@ -167,9 +180,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* RE-PERFECTED HIGH-FIDELITY RADAR GRAPH */}
         <div className="bg-white p-6 sm:p-10 rounded-[3.5rem] shadow-sm border border-slate-100 flex flex-col items-center group relative overflow-hidden">
-          {/* Enhanced background decorative elements */}
           <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-50/40 rounded-full -mr-40 -mt-40 opacity-80 pointer-events-none blur-3xl" />
           <div className="absolute bottom-0 left-0 w-40 h-40 bg-blue-50/20 rounded-full -ml-20 -mb-20 opacity-50 pointer-events-none blur-2xl" />
           
@@ -191,10 +202,6 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
                     <stop offset="5%" stopColor="#10b981" stopOpacity={0.85} />
                     <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0.3} />
                   </linearGradient>
-                  <filter id="radarGlow" x="-20%" y="-20%" width="140%" height="140%">
-                    <feGaussianBlur stdDeviation="3" result="blur" />
-                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                  </filter>
                 </defs>
                 
                 <PolarGrid 
@@ -208,17 +215,14 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
                   dataKey="subject" 
                   tick={(props) => {
                     const { payload, x, y, cx, cy } = props;
-                    // Fix: Explicitly cast coordinates to numbers to avoid arithmetic type errors in custom tick calculations
                     const nx = Number(x);
                     const ny = Number(y);
                     const ncx = Number(cx);
                     const ncy = Number(cy);
-                    
-                    // Calculate direction from center to place label outside with padding
                     const dx = nx - ncx;
                     const dy = ny - ncy;
                     const distance = Math.sqrt(dx * dx + dy * dy);
-                    const labelPadding = 22; // More space for labels
+                    const labelPadding = 22;
                     const lx = ncx + (dx / distance) * (distance + labelPadding);
                     const ly = ncy + (dy / distance) * (distance + labelPadding);
 
@@ -234,7 +238,6 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
                         >
                           {payload.value}
                         </text>
-                        {/* Styled badge for score */}
                         <text
                            y={14}
                            textAnchor="middle"
@@ -258,7 +261,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
                   strokeWidth={5}
                   fill="url(#radarAreaGradient)" 
                   fillOpacity={0.7} 
-                  dot={(props) => {
+                  dot={(props: any) => {
                     const { cx, cy } = props;
                     return (
                       <circle 
@@ -291,10 +294,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
               </RadarChart>
             </ResponsiveContainer>
 
-            {/* High-Fidelity Central Visual Anchor */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full border-[8px] border-white bg-emerald-500 shadow-[0_15px_30px_-5px_rgba(16,185,129,0.5)] z-20 flex items-center justify-center ring-8 ring-emerald-50/50">
                <div className="w-4 h-4 bg-white rounded-full animate-pulse shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
-               {/* Inner target lines */}
                <div className="absolute inset-0 border-2 border-white/20 rounded-full scale-150 animate-ping duration-[3s]" />
             </div>
           </div>
@@ -314,32 +315,59 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
           </div>
         </div>
 
-        <div className="lg:col-span-2 bg-white p-10 rounded-[3.5rem] shadow-sm border border-slate-100 flex flex-col">
-          <div className="flex items-center justify-between mb-10">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-purple-50 text-purple-600 rounded-[1.5rem] shadow-sm"><Lightbulb size={24} /></div>
-              <h3 className="text-2xl font-black text-slate-800 tracking-tight">Estratégias de Hoje</h3>
+        <div className="lg:col-span-2 space-y-8 flex flex-col h-full">
+          {/* Badge Showcase - Section with highlight animation if new badges earned */}
+          <div className={`bg-white p-8 rounded-[3.5rem] shadow-sm border transition-all duration-1000 flex flex-col flex-1 relative ${
+            newlyEarnedBadgeIds.length > 0 
+              ? 'border-amber-400 ring-4 ring-amber-400/20 shadow-xl shadow-amber-500/10 scale-[1.01]' 
+              : 'border-slate-100'
+          }`}>
+            {newlyEarnedBadgeIds.length > 0 && (
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-amber-500 text-white px-6 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.3em] shadow-lg animate-bounce z-50">
+                Novas Conquistas!
+              </div>
+            )}
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-4">
+                <div className={`p-3 rounded-[1.5rem] shadow-sm transition-colors duration-500 ${
+                  newlyEarnedBadgeIds.length > 0 ? 'bg-amber-500 text-white animate-pulse' : 'bg-amber-50 text-amber-600'
+                }`}>
+                  <Award size={24} />
+                </div>
+                <h3 className="text-2xl font-black text-slate-800 tracking-tight">Conquistas</h3>
+              </div>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Gamificação</span>
             </div>
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">IA Sugestões</span>
+            <BadgeShowcase badges={progress.badges} newlyEarnedBadgeIds={newlyEarnedBadgeIds} />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 flex-1">
-             <div className="p-8 bg-emerald-50/40 border border-emerald-100 rounded-[3rem] flex flex-col justify-between group hover:shadow-2xl hover:shadow-emerald-500/10 transition-all cursor-default overflow-hidden relative">
-                <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-100/50 rounded-full blur-2xl group-hover:scale-125 transition-transform" />
-                <div className="relative z-10">
-                  <div className="w-fit p-3 bg-white rounded-2xl shadow-sm mb-4 group-hover:scale-110 transition-transform"><Target className="text-emerald-600" size={20} /></div>
-                  <h4 className="font-black text-slate-900 text-xl mb-2">Prática de Subjuntivo</h4>
-                  <p className="text-sm text-slate-600 leading-relaxed font-medium">Seu domínio aumentou 12%. Vamos consolidar em um cenário de negócios?</p>
-                </div>
-                <button onClick={() => onStartLesson?.("Quero uma prática focada em subjuntivo avançado.")} className="mt-8 py-4 bg-white text-emerald-600 text-[10px] font-black rounded-2xl border border-emerald-200 hover:bg-emerald-600 hover:text-white transition-all uppercase tracking-[0.2em] shadow-sm relative z-10">Iniciar Módulo</button>
-             </div>
-             <div onClick={() => setIsStudyMode(true)} className="p-8 bg-slate-900 border border-slate-800 rounded-[3rem] flex flex-col justify-center items-center text-center cursor-pointer hover:bg-slate-950 hover:shadow-2xl transition-all group relative overflow-hidden">
-                <div className="relative z-10 flex flex-col items-center">
-                  <div className="p-5 bg-white/10 rounded-3xl shadow-inner mb-5 group-hover:scale-110 transition-transform"><Layers className="text-emerald-400" size={40} /></div>
-                  <h4 className="font-black text-white text-xl mb-1">Revisão Ativa</h4>
-                  <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.3em]">{studyDeck.length} itens pendentes</p>
-                </div>
-                <div className="mt-8 pt-6 border-t border-white/5 w-full text-[10px] font-black text-white/30 uppercase tracking-widest group-hover:text-emerald-500 transition-colors">Iniciar Flashcards</div>
-             </div>
+
+          <div className="bg-white p-10 rounded-[3.5rem] shadow-sm border border-slate-100 flex flex-col">
+            <div className="flex items-center justify-between mb-10">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-purple-50 text-purple-600 rounded-[1.5rem] shadow-sm"><Lightbulb size={24} /></div>
+                <h3 className="text-2xl font-black text-slate-800 tracking-tight">Estratégias de Hoje</h3>
+              </div>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">IA Sugestões</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 flex-1">
+              <div className="p-8 bg-emerald-50/40 border border-emerald-100 rounded-[3rem] flex flex-col justify-between group hover:shadow-2xl hover:shadow-emerald-500/10 transition-all cursor-default overflow-hidden relative">
+                  <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-100/50 rounded-full blur-2xl group-hover:scale-125 transition-transform" />
+                  <div className="relative z-10">
+                    <div className="w-fit p-3 bg-white rounded-2xl shadow-sm mb-4 group-hover:scale-110 transition-transform"><Target className="text-emerald-600" size={20} /></div>
+                    <h4 className="font-black text-slate-900 text-xl mb-2">Prática de Subjuntivo</h4>
+                    <p className="text-sm text-slate-600 leading-relaxed font-medium">Seu domínio aumentou 12%. Vamos consolidar em um cenário de negócios?</p>
+                  </div>
+                  <button onClick={() => onStartLesson?.("Quero uma prática focada em subjuntivo avançado.")} className="mt-8 py-4 bg-white text-emerald-600 text-[10px] font-black rounded-2xl border border-emerald-200 hover:bg-emerald-600 hover:text-white transition-all uppercase tracking-[0.2em] shadow-sm relative z-10">Iniciar Módulo</button>
+              </div>
+              <div onClick={() => setIsStudyMode(true)} className="p-8 bg-slate-900 border border-slate-800 rounded-[3rem] flex flex-col justify-center items-center text-center cursor-pointer hover:bg-slate-950 hover:shadow-2xl transition-all group relative overflow-hidden">
+                  <div className="relative z-10 flex flex-col items-center">
+                    <div className="p-5 bg-white/10 rounded-3xl shadow-inner mb-5 group-hover:scale-110 transition-transform"><Layers className="text-emerald-400" size={40} /></div>
+                    <h4 className="font-black text-white text-xl mb-1">Revisão Ativa</h4>
+                    <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.3em]">{studyDeck.length} itens pendentes</p>
+                  </div>
+                  <div className="mt-8 pt-6 border-t border-white/5 w-full text-[10px] font-black text-white/30 uppercase tracking-widest group-hover:text-emerald-500 transition-colors">Iniciar Flashcards</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

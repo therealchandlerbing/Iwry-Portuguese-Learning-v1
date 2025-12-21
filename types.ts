@@ -57,6 +57,17 @@ export interface MemoryEntry {
   type: 'homework' | 'reading' | 'meeting' | 'social';
 }
 
+export interface Badge {
+  id: string;
+  title: string;
+  description: string;
+  icon: string; // Lucide icon name
+  category: 'STREAK' | 'VOCAB' | 'LESSON' | 'MASTERY';
+  threshold: number;
+  earnedDate?: Date;
+  isUnlocked: boolean;
+}
+
 export interface UserProgress {
   level: string; // Proficiency (e.g., A2)
   difficulty: DifficultyLevel;
@@ -70,7 +81,8 @@ export interface UserProgress {
   selectedTopics: string[]; 
   lastSessionDate: Date;
   sessionCount: number;
-  generatedModules: LessonModule[]; // New persistent field for AI-created lessons
+  generatedModules: LessonModule[];
+  badges: Badge[];
 }
 
 export interface SessionAnalysis {

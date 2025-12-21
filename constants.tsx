@@ -1,4 +1,6 @@
 
+import { Badge } from './types';
+
 export const COLORS = {
   brazilGreen: '#009b3a',
   brazilYellow: '#fedf00',
@@ -43,3 +45,13 @@ export const SYSTEM_INSTRUCTIONS: Record<string, string> = {
   QUIZ_GENERATOR: `Create a 3-question quiz. Return strictly JSON.`,
   CORRECTION_ENGINE: `Analyze user input. Return JSON: { "hasError": boolean, "corrected": string, "explanation": string, "category": string }`
 };
+
+export const DEFAULT_BADGES: Badge[] = [
+  { id: 'streak_3', title: 'Habit Builder', description: '3-day learning streak', icon: 'Flame', category: 'STREAK', threshold: 3, isUnlocked: false },
+  { id: 'streak_7', title: 'Weekly Warrior', description: '7-day learning streak', icon: 'Trophy', category: 'STREAK', threshold: 7, isUnlocked: false },
+  { id: 'streak_30', title: 'Language Legend', description: '30-day learning streak', icon: 'Crown', category: 'STREAK', threshold: 30, isUnlocked: false },
+  { id: 'vocab_50', title: 'Wordsmith', description: 'Master 50 words', icon: 'BookOpen', category: 'VOCAB', threshold: 50, isUnlocked: false },
+  { id: 'vocab_100', title: 'Lexicon Master', description: 'Master 100 words', icon: 'Library', category: 'VOCAB', threshold: 100, isUnlocked: false },
+  { id: 'lesson_5', title: 'Curriculum Completer', description: 'Complete 5 lesson submodules', icon: 'GraduationCap', category: 'LESSON', threshold: 5, isUnlocked: false },
+  { id: 'mastery_75', title: 'High Achiever', description: 'Reach 75% grammar mastery in one area', icon: 'Award', category: 'MASTERY', threshold: 75, isUnlocked: false },
+];

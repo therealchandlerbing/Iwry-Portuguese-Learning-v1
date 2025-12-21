@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { AppMode, Message, UserProgress, VocabItem, MemoryEntry, SessionAnalysis, DifficultyLevel, CorrectionObject, LessonModule } from './types';
+import { AppMode, Message, UserProgress, VocabItem, MemoryEntry, SessionAnalysis, DifficultyLevel, CorrectionObject, LessonModule, Badge } from './types';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import ChatView from './components/ChatView';
@@ -17,6 +17,7 @@ import QuizView from './components/QuizView';
 import SessionSummaryModal from './components/SessionSummaryModal';
 import CorrectionLibraryView from './components/CorrectionLibraryView';
 import { analyzeSession, checkGrammar } from './services/geminiService';
+import { DEFAULT_BADGES } from './constants';
 
 const INITIAL_PROGRESS: UserProgress = {
   level: 'A2',
@@ -38,7 +39,8 @@ const INITIAL_PROGRESS: UserProgress = {
   selectedTopics: [],
   lastSessionDate: new Date(),
   sessionCount: 24,
-  generatedModules: []
+  generatedModules: [],
+  badges: DEFAULT_BADGES
 };
 
 const App: React.FC = () => {
@@ -48,6 +50,7 @@ const App: React.FC = () => {
   const [progress, setProgress] = useState<UserProgress>(INITIAL_PROGRESS);
   const [lastAnalysis, setLastAnalysis] = useState<SessionAnalysis | null>(null);
   const [activeQuizTopic, setActiveQuizTopic] = useState<{title: string, description: string, questions?: any[]} | null>(null);
+  const [newlyEarnedBadgeIds, setNewlyEarnedBadgeIds] = useState<string[]>([]);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -68,6 +71,10 @@ const App: React.FC = () => {
         parsed.vocabulary = parsed.vocabulary.map((v: any) => ({ ...v, lastPracticed: new Date(v.lastPracticed) }));
         parsed.memories = parsed.memories.map((m: any) => ({ ...m, date: new Date(m.date) }));
         parsed.correctionHistory = (parsed.correctionHistory || []).map((c: any) => ({ ...c, timestamp: new Date(c.timestamp) }));
+        if (!parsed.badges) parsed.badges = DEFAULT_BADGES;
+        else {
+          parsed.badges = parsed.badges.map((b: any) => b.earnedDate ? { ...b, earnedDate: new Date(b.earnedDate) } : b);
+        }
         setProgress(parsed);
       } catch (e) {
         console.error("Failed to load progress", e);
@@ -85,6 +92,50 @@ const App: React.FC = () => {
     localStorage.setItem('fala_comigo_progress', JSON.stringify(progress));
   }, [progress]);
 
+  // Badge Logic - Check whenever progress changes
+  useEffect(() => {
+    const checkBadges = () => {
+      let updated = false;
+      const newlyEarned: string[] = [];
+      const newBadges = progress.badges.map(badge => {
+        if (badge.isUnlocked) return badge;
+
+        let shouldUnlock = false;
+        switch (badge.category) {
+          case 'STREAK':
+            if (progress.streak >= badge.threshold) shouldUnlock = true;
+            break;
+          case 'VOCAB':
+            const masteredCount = progress.vocabulary.filter(v => v.confidence >= 80).length;
+            if (masteredCount >= badge.threshold) shouldUnlock = true;
+            break;
+          case 'LESSON':
+            if (progress.lessonsCompleted.length >= badge.threshold) shouldUnlock = true;
+            break;
+          case 'MASTERY':
+            const maxMastery = Math.max(...Object.values(progress.grammarMastery));
+            if (maxMastery * 100 >= badge.threshold) shouldUnlock = true;
+            break;
+        }
+
+        if (shouldUnlock) {
+          updated = true;
+          newlyEarned.push(badge.id);
+          return { ...badge, isUnlocked: true, earnedDate: new Date() };
+        }
+        return badge;
+      });
+
+      if (updated) {
+        setProgress(prev => ({ ...prev, badges: newBadges }));
+        setNewlyEarnedBadgeIds(prev => [...prev, ...newlyEarned]);
+      }
+    };
+
+    const debounceTimer = setTimeout(checkBadges, 1000);
+    return () => clearTimeout(debounceTimer);
+  }, [progress.streak, progress.vocabulary, progress.lessonsCompleted, progress.grammarMastery]);
+
   const addMessage = (msg: Omit<Message, 'id' | 'timestamp'>) => {
     setMessages(prev => [...prev, {
       ...msg,
@@ -96,7 +147,6 @@ const App: React.FC = () => {
   const handleUserMessage = async (msg: Omit<Message, 'id' | 'timestamp'>) => {
     addMessage(msg);
 
-    // Only check grammar for specific modes and non-assistant roles
     if (msg.role === 'user' && (mode === AppMode.CHAT || mode === AppMode.LIVE_VOICE || mode === AppMode.TEXT_MODE)) {
       const correctionResult = await checkGrammar(msg.content, progress.difficulty);
       if (correctionResult.hasError) {
@@ -110,13 +160,11 @@ const App: React.FC = () => {
           timestamp: new Date()
         };
 
-        // Add to history for reusability
         setProgress(prev => ({
           ...prev,
           correctionHistory: [correctionObj, ...prev.correctionHistory].slice(0, 50)
         }));
 
-        // Notify user about correction in the message stream
         addMessage({
           role: 'assistant',
           content: `💡 Dica: No seu último texto, o ideal seria: "${correctionResult.corrected}". ${correctionResult.explanation}`,
@@ -151,7 +199,6 @@ const App: React.FC = () => {
       const analysis: SessionAnalysis = await analyzeSession(history);
       
       setProgress(prev => {
-        // 1. Update Vocabulary
         const existingWords = new Set(prev.vocabulary.map(v => v.word.toLowerCase()));
         const filteredNewVocab = analysis.newVocab
           .filter(v => !existingWords.has(v.word.toLowerCase()))
@@ -159,7 +206,6 @@ const App: React.FC = () => {
         
         const updatedVocab = [...prev.vocabulary, ...filteredNewVocab].slice(-200);
 
-        // 2. Update Grammar
         const newGrammarMastery = { ...prev.grammarMastery };
         Object.entries(analysis.grammarPerformance).forEach(([pattern, delta]) => {
           if (newGrammarMastery[pattern] !== undefined) {
@@ -169,7 +215,6 @@ const App: React.FC = () => {
           }
         });
 
-        // 3. Update Streak if needed
         const today = new Date().toDateString();
         const last = new Date(prev.lastSessionDate).toDateString();
         let newStreak = prev.streak;
@@ -252,7 +297,7 @@ const App: React.FC = () => {
   const renderContent = () => {
     switch (mode) {
       case AppMode.DASHBOARD:
-        return <DashboardView progress={progress} setMode={setMode} onStartLesson={startLesson} />;
+        return <DashboardView progress={progress} setMode={setMode} onStartLesson={startLesson} newlyEarnedBadgeIds={newlyEarnedBadgeIds} clearNewlyEarned={() => setNewlyEarnedBadgeIds([])} />;
       case AppMode.CHAT:
       case AppMode.TEXT_MODE:
       case AppMode.QUICK_HELP:
@@ -267,7 +312,7 @@ const App: React.FC = () => {
       case AppMode.LESSONS:
         return <LessonsView customModules={progress.generatedModules} onSaveCustomModule={handleSaveCustomModule} onStartLesson={startLesson} onStartQuiz={startQuiz} selectedTopics={progress.selectedTopics} onToggleTopic={toggleTopicFocus} />;
       case AppMode.QUIZ:
-        return activeQuizTopic ? <QuizView topic={activeQuizTopic} onComplete={() => setMode(AppMode.LESSONS)} /> : <DashboardView progress={progress} setMode={setMode} onStartLesson={startLesson} />;
+        return activeQuizTopic ? <QuizView topic={activeQuizTopic} onComplete={() => setMode(AppMode.LESSONS)} /> : <DashboardView progress={progress} setMode={setMode} onStartLesson={startLesson} newlyEarnedBadgeIds={newlyEarnedBadgeIds} clearNewlyEarned={() => setNewlyEarnedBadgeIds([])} />;
       case AppMode.CORRECTION_LIBRARY:
         return <CorrectionLibraryView history={progress.correctionHistory} onStartReview={(p) => startLesson(p, AppMode.REVIEW_SESSION)} />;
       default:
@@ -293,7 +338,6 @@ const App: React.FC = () => {
       </div>
       <MobileNav currentMode={mode} setMode={setMode} />
       
-      {/* Session Summary Overlay */}
       {lastAnalysis && (
         <SessionSummaryModal 
           analysis={lastAnalysis} 
