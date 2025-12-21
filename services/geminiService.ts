@@ -1,11 +1,51 @@
 
 import { GoogleGenAI, Modality, GenerateContentResponse, LiveServerMessage, Type } from "@google/genai";
 import { SYSTEM_INSTRUCTIONS } from "../constants";
-import { QuizQuestion, SessionAnalysis, DifficultyLevel, CorrectionObject, LessonModule } from "../types";
+import { QuizQuestion, SessionAnalysis, DifficultyLevel, CorrectionObject, LessonModule, DictionaryEntry } from "../types";
 
 export const getGeminiClient = () => {
   return new GoogleGenAI({ apiKey: process.env.API_KEY });
 };
+
+export async function getDictionaryDefinition(word: string): Promise<DictionaryEntry> {
+  const ai = getGeminiClient();
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: [{ role: 'user', parts: [{ text: `Translate and define the following English word into Brazilian Portuguese: "${word}"` }] }],
+    config: {
+      systemInstruction: SYSTEM_INSTRUCTIONS.DICTIONARY,
+      responseMimeType: "application/json",
+      thinkingConfig: { thinkingBudget: 0 },
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          word: { type: Type.STRING, description: "The Portuguese translation of the English word." },
+          category: { type: Type.STRING },
+          meaning: { type: Type.STRING, description: "Detailed definition in Portuguese." },
+          translation: { type: Type.STRING, description: "Original English word for context." },
+          tenseInfo: { type: Type.STRING },
+          conjugation: {
+            type: Type.OBJECT,
+            properties: {
+              eu: { type: Type.STRING },
+              tu_voce: { type: Type.STRING },
+              ele_ela: { type: Type.STRING },
+              nos: { type: Type.STRING },
+              vcs_eles: { type: Type.STRING }
+            }
+          },
+          irregularities: { type: Type.STRING },
+          examples: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Usage examples in Portuguese with English translations in parentheses." },
+          usageNotes: { type: Type.STRING },
+          gender: { type: Type.STRING, enum: ['Masculine', 'Feminine', 'Neutral'] }
+        },
+        required: ["word", "category", "meaning", "translation", "examples", "usageNotes"]
+      }
+    }
+  });
+
+  return JSON.parse(response.text || "{}");
+}
 
 export async function checkGrammar(text: string, difficulty: DifficultyLevel): Promise<any> {
   const ai = getGeminiClient();

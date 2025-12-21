@@ -11,13 +11,33 @@ export enum AppMode {
   IMPORT_MEMORY = 'IMPORT_MEMORY',
   QUIZ = 'QUIZ',
   CORRECTION_LIBRARY = 'CORRECTION_LIBRARY',
-  LEARNING_LOG = 'LEARNING_LOG'
+  LEARNING_LOG = 'LEARNING_LOG',
+  DICTIONARY = 'DICTIONARY'
 }
 
 export enum DifficultyLevel {
   BEGINNER = 'BEGINNER',
   INTERMEDIATE = 'INTERMEDIATE',
   ADVANCED = 'ADVANCED'
+}
+
+export interface DictionaryEntry {
+  word: string;
+  category: string; // Noun, Verb, Adjective, etc.
+  meaning: string;
+  translation: string;
+  tenseInfo?: string; // e.g. "Presente do Indicativo"
+  conjugation?: {
+    eu: string;
+    tu_voce: string;
+    ele_ela: string;
+    nos: string;
+    vcs_eles: string;
+  };
+  irregularities: string | null;
+  examples: string[];
+  usageNotes: string;
+  gender?: 'Masculine' | 'Feminine' | 'Neutral';
 }
 
 export interface CorrectionObject {
@@ -104,20 +124,14 @@ export interface SessionAnalysis {
   nextStepRecommendation: string;
 }
 
-export interface Correction {
-  original: string;
-  corrected: string;
-  explanation: string;
-}
-
 export interface LessonSubModule {
   id: string;
   title: string;
   description: string;
   prompt: string;
   grammarExplanation?: string;
-  milestones?: string[]; // New: Specific learning goals
-  unitTest?: QuizQuestion[]; // New: Embedded test for this specific submodule
+  milestones?: string[]; 
+  unitTest?: QuizQuestion[]; 
 }
 
 export interface LessonModule {
@@ -126,7 +140,7 @@ export interface LessonModule {
   icon: string;
   description: string;
   submodules: LessonSubModule[];
-  isCustom?: boolean; // Flag for user-generated content
+  isCustom?: boolean; 
 }
 
 export interface QuizQuestion {

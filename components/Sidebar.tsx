@@ -13,7 +13,8 @@ import {
   ChevronRight,
   TrendingUp,
   History,
-  FileText
+  FileText,
+  Search
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -35,6 +36,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentMode, setMode, progress }) => 
     {
       label: 'Tools & Analysis',
       items: [
+        { mode: AppMode.DICTIONARY, label: 'Linguistic Lookup', icon: <Search size={18} /> },
         { mode: AppMode.IMAGE_ANALYSIS, label: 'Photo Analysis', icon: <Camera size={18} /> },
         { mode: AppMode.LESSONS, label: 'Structured Lessons', icon: <BookOpen size={18} /> },
         { mode: AppMode.REVIEW_SESSION, label: 'Review Center', icon: <RefreshCw size={18} /> },

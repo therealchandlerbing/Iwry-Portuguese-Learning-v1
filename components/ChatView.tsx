@@ -40,17 +40,6 @@ interface ChatViewProps {
   onFinish?: () => void;
 }
 
-const SCENARIO_STARTERS = [
-  { id: 'meeting', label: 'Reunião', icon: <Briefcase size={14} />, prompt: "Iwry, vamos simular o início de uma reunião estratégica em São Paulo." },
-  { id: 'food', label: 'Restaurante', icon: <Utensils size={14} />, prompt: "Quero praticar pedir comida em um restaurante sofisticado." },
-  { id: 'bar', label: 'Happy Hour', icon: <Beer size={14} />, prompt: "Simule um happy hour com colegas de trabalho em um bar em Pinheiros." },
-  { id: 'directions', label: 'Direções', icon: <MapPin size={14} />, prompt: "Estou perdido na Av. Paulista e preciso pedir direções para o MASP." },
-  { id: 'shop', label: 'Compras', icon: <Store size={14} />, prompt: "Quero praticar comprar um presente na Oscar Freire e pedir desconto." },
-  { id: 'event', label: 'Evento', icon: <Theater size={14} />, prompt: "Estamos em um evento de inovação. Vamos praticar networking?" },
-  { id: 'health', label: 'Farmácia', icon: <Stethoscope size={14} />, prompt: "Não estou me sentindo bem. Preciso ir à farmácia explicar meus sintomas." },
-  { id: 'travel', label: 'Viagem', icon: <Plane size={14} />, prompt: "Estou fazendo check-in em um hotel boutique no Rio de Janeiro." },
-];
-
 const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, difficulty, memories, selectedTopics, onFinish }) => {
   const isWhatsApp = mode === AppMode.TEXT_MODE;
   const [input, setInput] = useState('');
@@ -83,7 +72,7 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, diffi
       const response = await generateChatResponse(mode, chatHistory, text, difficulty, memories, currentImage || undefined, selectedTopics);
       onAddMessage({ role: 'assistant', content: response });
     } catch (err) {
-      onAddMessage({ role: 'assistant', content: "Ops, algo deu errado. Pode tentar de novo?" });
+      onAddMessage({ role: 'assistant', content: "Ops, algo deu errado. Pode tentar de novo? (Oops, something went wrong. Can you try again?)" });
     } finally {
       setLoading(false);
     }
@@ -91,9 +80,11 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, diffi
 
   const playAudio = async (text: string, msgId: string) => {
     if (audioLoading) return;
+    // Strip markdown before TTS for cleaner voice output
+    const cleanText = text.replace(/\*\*|\*/g, '');
     setAudioLoading(msgId);
     try {
-      const audioBytes = await textToSpeech(text);
+      const audioBytes = await textToSpeech(cleanText);
       if (audioBytes) {
         const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
         const buffer = await decodeAudioData(audioBytes, audioContext, 24000, 1);
@@ -134,6 +125,25 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, diffi
       mediaRecorderRef.current.stop();
       setIsRecording(false);
     }
+  };
+
+  const renderContent = (content: string) => {
+    // Split by double line breaks for airy spacing
+    const paragraphs = content.split(/\n\s*\n/);
+
+    return paragraphs.map((para, pIdx) => (
+      <p key={pIdx} className={pIdx > 0 ? "mt-4" : ""}>
+        {para.split(/(\*\*.*?\*\*|\*.*?\*)/g).map((part, i) => {
+          if (part.startsWith('**') && part.endsWith('**')) {
+            return <strong key={i} className="font-black text-slate-900">{part.slice(2, -2)}</strong>;
+          }
+          if (part.startsWith('*') && part.endsWith('*')) {
+            return <em key={i} className="italic text-slate-500 font-normal">{part.slice(1, -1)}</em>;
+          }
+          return part;
+        })}
+      </p>
+    ));
   };
 
   return (
@@ -187,34 +197,13 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, diffi
         </div>
       </div>
 
-      {/* CONVERSATION SCENARIO SELECTOR (Compact Dropdown) */}
-      {!isWhatsApp && showScenarios && (
-        <div className="absolute top-[53px] left-0 right-0 z-[45] bg-white border-b border-slate-200 shadow-xl p-3 animate-in slide-in-from-top-2 duration-300">
-          <div className="max-w-4xl mx-auto">
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Selecione um tópico para iniciar</p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {SCENARIO_STARTERS.map(s => (
-                <button 
-                  key={s.id} 
-                  onClick={() => handleSend(s.prompt)} 
-                  className="flex items-center gap-2 p-2.5 bg-slate-50 border border-slate-100 rounded-xl hover:border-emerald-300 hover:bg-emerald-50 transition-all group"
-                >
-                  <div className="p-1.5 bg-white text-slate-400 group-hover:text-emerald-600 rounded-lg shadow-sm transition-colors">{s.icon}</div>
-                  <span className="text-[10px] font-black uppercase text-slate-600 tracking-tight">{s.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* WHATSAPP DOODLE PATTERN */}
       {isWhatsApp && (
         <div className="absolute inset-0 opacity-[0.06] pointer-events-none z-0" style={{ backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")', backgroundSize: '400px' }} />
       )}
 
       {/* MESSAGES AREA */}
-      <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-6 space-y-4 relative z-10 no-scrollbar">
+      <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-6 space-y-6 relative z-10 no-scrollbar">
         {messages.length < 2 && !loading && !isWhatsApp && !showScenarios && (
           <div className="max-w-md mx-auto py-20 text-center space-y-4 animate-in fade-in duration-700">
              <div className="w-16 h-16 bg-slate-100 rounded-[1.5rem] flex items-center justify-center mx-auto text-slate-400 mb-2">
@@ -231,43 +220,33 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, diffi
 
           return (
             <div key={msg.id} className={`flex ${isUser ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
-              <div className={`max-w-[88%] sm:max-w-[70%] group flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
+              <div className={`max-w-[88%] sm:max-w-[75%] group flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
                 
-                {/* WHATSAPP BUBBLES */}
-                {isWhatsApp ? (
-                  <div className={`relative px-3 py-1.5 shadow-sm rounded-xl mb-1 ${isUser ? 'bg-[#DCF8C6] rounded-tr-none' : 'bg-white rounded-tl-none'}`}>
-                    {/* Tail simulation */}
-                    <div className={`absolute top-0 w-2.5 h-2.5 ${isUser ? '-right-1 bg-[#DCF8C6] clip-tail-right' : '-left-1 bg-white clip-tail-left'}`}></div>
+                {/* BUBBLE RENDERING */}
+                <div className={`relative flex items-end gap-2 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
+                  <div className={`px-5 py-4 rounded-3xl shadow-sm border ${
+                    isCorrection ? 'bg-amber-50 border-amber-200 text-amber-900' :
+                    isWhatsApp ? (isUser ? 'bg-[#DCF8C6] border-[#cedeb7] text-slate-800' : 'bg-white border-slate-100 text-slate-800') :
+                    isUser ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-100 text-slate-800'
+                  }`}>
+                    {isCorrection && <div className="flex items-center gap-1.5 mb-2 text-[10px] font-black uppercase tracking-widest text-amber-600"><Info size={12} /> Iwry Tip</div>}
+                    {msg.imageUrl && <img src={msg.imageUrl} className="rounded-2xl mb-3 border border-black/5" alt="Uploaded" />}
                     
-                    {msg.imageUrl && <img src={msg.imageUrl} className="rounded-lg mb-2 max-w-full" alt="Uploaded" />}
-                    <p className="text-[15px] leading-[1.3] text-slate-800">{msg.content}</p>
-                    
-                    <div className="flex items-center justify-end gap-1 mt-0.5">
-                      <span className="text-[9px] text-slate-400 font-bold uppercase">{msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                      {isUser && <CheckCheck size={13} className="text-blue-400" />}
+                    <div className={`text-[15px] leading-relaxed ${isUser ? 'font-medium' : ''}`}>
+                      {renderContent(msg.content)}
+                    </div>
+
+                    <div className={`mt-3 text-[9px] font-bold uppercase tracking-widest flex items-center justify-between gap-4 ${isUser ? 'text-white/40' : 'text-slate-300'}`}>
+                      <span>{msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      {isUser && isWhatsApp && <CheckCheck size={13} className="text-blue-400" />}
                     </div>
                   </div>
-                ) : (
-                  /* CONVERSATION BUBBLES */
-                  <div className={`relative flex items-end gap-2 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
-                    <div className={`px-5 py-3 rounded-3xl shadow-sm border ${
-                      isCorrection ? 'bg-amber-50 border-amber-200 text-amber-900' :
-                      isUser ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-100 text-slate-800'
-                    }`}>
-                      {isCorrection && <div className="flex items-center gap-1.5 mb-2 text-[10px] font-black uppercase tracking-widest text-amber-600"><Info size={12} /> Iwry Tip</div>}
-                      {msg.imageUrl && <img src={msg.imageUrl} className="rounded-2xl mb-3 border border-black/5" alt="Uploaded" />}
-                      <p className="text-[15px] leading-relaxed font-medium">{msg.content}</p>
-                      <div className={`mt-2 text-[9px] font-bold uppercase tracking-widest ${isUser ? 'text-white/40' : 'text-slate-300'}`}>
-                        {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                    </div>
-                    {!isUser && !isCorrection && (
-                      <button onClick={() => playAudio(msg.content, msg.id)} className="p-2.5 bg-white rounded-full shadow-sm text-slate-400 hover:text-emerald-500 hover:scale-110 active:scale-95 transition-all border border-slate-100">
-                        {audioLoading === msg.id ? <Loader2 size={16} className="animate-spin" /> : <Volume2 size={16} />}
-                      </button>
-                    )}
-                  </div>
-                )}
+                  {!isUser && !isCorrection && (
+                    <button onClick={() => playAudio(msg.content, msg.id)} className="p-2.5 bg-white rounded-full shadow-sm text-slate-400 hover:text-emerald-500 hover:scale-110 active:scale-95 transition-all border border-slate-100 mb-1">
+                      {audioLoading === msg.id ? <Loader2 size={16} className="animate-spin" /> : <Volume2 size={16} />}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           );
@@ -330,8 +309,6 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, diffi
       </div>
 
       <style>{`
-        .clip-tail-right { clip-path: polygon(0% 0%, 100% 0%, 0% 100%); }
-        .clip-tail-left { clip-path: polygon(0% 0%, 100% 0%, 100% 100%); }
         .no-scrollbar::-webkit-scrollbar { display: none; }
       `}</style>
     </div>

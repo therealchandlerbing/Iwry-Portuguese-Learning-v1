@@ -17,6 +17,7 @@ import QuizView from './components/QuizView';
 import SessionSummaryModal from './components/SessionSummaryModal';
 import CorrectionLibraryView from './components/CorrectionLibraryView';
 import LearningLogView from './components/LearningLogView';
+import DictionaryView from './components/DictionaryView';
 import { analyzeSession, checkGrammar } from './services/geminiService';
 import { DEFAULT_BADGES } from './constants';
 
@@ -330,6 +331,8 @@ const App: React.FC = () => {
         return <LiveVoiceView memories={progress.memories} difficulty={progress.difficulty} />;
       case AppMode.IMAGE_ANALYSIS:
         return <ImageAnalyzer onAddMessage={handleUserMessage} difficulty={progress.difficulty} />;
+      case AppMode.DICTIONARY:
+        return <DictionaryView />;
       case AppMode.IMPORT_MEMORY:
         return <MemoryImportView onImport={syncExternalMemory} />;
       case AppMode.LESSONS:

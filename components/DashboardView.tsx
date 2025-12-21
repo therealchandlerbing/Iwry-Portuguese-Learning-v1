@@ -105,30 +105,15 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
         </div>
       </div>
 
-      {progress.sessionCount === 0 && (
-        <div className="bg-slate-900 text-white p-8 rounded-[3rem] shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 animate-in slide-in-from-top-4 duration-1000">
-          <div className="space-y-2 text-center md:text-left">
-            <h3 className="text-2xl font-black">Sua jornada começa agora!</h3>
-            <p className="text-slate-400 font-medium">Pratique sua primeira sessão de voz para desbloquear suas estatísticas.</p>
-          </div>
-          <button 
-            onClick={() => setMode(AppMode.LIVE_VOICE)}
-            className="bg-emerald-500 hover:bg-emerald-600 text-white px-10 py-5 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] transition-all flex items-center gap-3 active:scale-95"
-          >
-            Começar Sessão <ChevronRight size={18} />
-          </button>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 min-h-0">
         <div className="bg-white p-6 sm:p-10 rounded-[3.5rem] shadow-sm border border-slate-100 flex flex-col items-center">
           <div className="w-full mb-12">
             <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em] mb-1">Visão Geral</h3>
             <p className="text-sm font-black text-slate-900 uppercase tracking-tighter">{labels.radarTitle}</p>
           </div>
 
-          <div className="h-[350px] w-full relative z-10 flex items-center justify-center">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-[350px] w-full relative z-10 flex items-center justify-center min-w-0">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
               <RadarChart cx="50%" cy="50%" outerRadius="62%" data={radarData}>
                 <PolarGrid stroke="#e2e8f0" />
                 <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 9, fontWeight: 900 }} />
@@ -159,15 +144,17 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
           </div>
         </div>
 
-        <div className="lg:col-span-2 space-y-8 flex flex-col h-full">
-          <div className="bg-white p-8 rounded-[3.5rem] shadow-sm border border-slate-100 flex flex-col flex-1">
+        <div className="lg:col-span-2 space-y-8 flex flex-col h-full min-h-0">
+          <div className="bg-white p-8 rounded-[3.5rem] shadow-sm border border-slate-100 flex flex-col flex-1 min-h-0">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 bg-amber-50 text-amber-600 rounded-[1.5rem]"><Award size={24} /></div>
                 <h3 className="text-2xl font-black text-slate-800 tracking-tight">{labels.achievements}</h3>
               </div>
             </div>
-            <BadgeShowcase badges={progress.badges} newlyEarnedBadgeIds={newlyEarnedBadgeIds} />
+            <div className="flex-1 overflow-y-auto no-scrollbar">
+              <BadgeShowcase badges={progress.badges} newlyEarnedBadgeIds={newlyEarnedBadgeIds} />
+            </div>
           </div>
 
           <div className="bg-white p-10 rounded-[3.5rem] shadow-sm border border-slate-100 flex flex-col">
