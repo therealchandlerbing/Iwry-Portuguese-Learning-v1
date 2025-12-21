@@ -8,7 +8,8 @@ import {
   BookOpen, 
   LayoutDashboard, 
   HelpCircle, 
-  Camera 
+  Camera,
+  RefreshCw
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -23,6 +24,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentMode, setMode }) => {
     { mode: AppMode.LIVE_VOICE, label: 'Live Voice Practice', icon: <Mic size={20} /> },
     { mode: AppMode.IMAGE_ANALYSIS, label: 'Photo Analysis', icon: <Camera size={20} /> },
     { mode: AppMode.LESSONS, label: 'Structured Lessons', icon: <BookOpen size={20} /> },
+    { mode: AppMode.REVIEW_SESSION, label: 'Review Center', icon: <RefreshCw size={20} /> },
     { mode: AppMode.QUICK_HELP, label: 'Quick Help', icon: <HelpCircle size={20} /> },
     { mode: AppMode.DASHBOARD, label: 'My Progress', icon: <LayoutDashboard size={20} /> },
   ];

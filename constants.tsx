@@ -21,6 +21,7 @@ export const SYSTEM_INSTRUCTIONS: Record<string, string> = {
   CHAT: `${IWRY_PERSONALITY} Mode: Conversation Practice. Engage in natural conversation. Offer 2-3 specific improvements at the end.`,
   TEXT_MODE: `${IWRY_PERSONALITY} Mode: WhatsApp/Texting. Use common abbreviations (vc, tb, pq, blz). Use authentic Brazilian emojis and slang.`,
   LESSONS: `${IWRY_PERSONALITY} Mode: Structured Learning. Focus on practical communication challenges.`,
+  REVIEW_SESSION: `${IWRY_PERSONALITY} Mode: Review Session. You are focusing on Chandler's weak points. Prioritize using the specific words and grammar patterns he is struggling with. Be supportive and push him to use difficult constructions.`,
   QUICK_HELP: `${IWRY_PERSONALITY} Mode: Translation & Context. Provide pronunciation guides and 2-3 example sentences.`,
   IMAGE_ANALYSIS: `${IWRY_PERSONALITY} Mode: Visual Learning. Describe images and provide relevant vocabulary.`,
   IMPORT_ANALYSIS: `You are a linguistic analyzer. Analyze the provided Portuguese text (homework, notes, or article). 

@@ -11,6 +11,8 @@ import MemoryImportView from './components/MemoryImportView';
 import MobileNav from './components/MobileNav';
 import LoadingScreen from './components/LoadingScreen';
 import EntryScreen from './components/EntryScreen';
+import LessonsView from './components/LessonsView';
+import ReviewSessionView from './components/ReviewSessionView';
 
 const INITIAL_PROGRESS: UserProgress = {
   level: 'A2',
@@ -18,7 +20,9 @@ const INITIAL_PROGRESS: UserProgress = {
     { word: 'Saudade', meaning: 'Nostalgic longing', confidence: 85, lastPracticed: new Date() },
     { word: 'Gente', meaning: 'People/Us', confidence: 90, lastPracticed: new Date() },
     { word: 'Com certeza', meaning: 'For sure', confidence: 70, lastPracticed: new Date() },
-    { word: 'Valeu', meaning: 'Thanks (informal)', confidence: 95, lastPracticed: new Date() }
+    { word: 'Valeu', meaning: 'Thanks (informal)', confidence: 95, lastPracticed: new Date() },
+    { word: 'Inovação', meaning: 'Innovation', confidence: 45, lastPracticed: new Date() },
+    { word: 'Relatório', meaning: 'Report', confidence: 30, lastPracticed: new Date() }
   ],
   lessonsCompleted: ['Basic Greetings', 'Business Etiquette Intro'],
   grammarMastery: { 'Present Tense': 0.7, 'Future Tense': 0.3, 'Subjunctive': 0.1 },
@@ -54,6 +58,14 @@ const App: React.FC = () => {
       id: Math.random().toString(36).substr(2, 9),
       timestamp: new Date()
     }]);
+  };
+
+  const startLesson = (prompt: string, customMode: AppMode = AppMode.CHAT) => {
+    setMode(customMode);
+    addMessage({
+      role: 'user',
+      content: prompt.startsWith('I want to') ? prompt : `Quero começar a aula: ${prompt}`
+    });
   };
 
   const syncExternalMemory = (analysis: any) => {
@@ -94,41 +106,18 @@ const App: React.FC = () => {
       case AppMode.CHAT:
       case AppMode.TEXT_MODE:
       case AppMode.QUICK_HELP:
+      case AppMode.REVIEW_SESSION:
         return <ChatView mode={mode} messages={messages} onAddMessage={addMessage} memories={progress.memories} />;
       case AppMode.LIVE_VOICE:
         return <LiveVoiceView memories={progress.memories} />;
-      case AppMode.DASHBOARD:
-        return <DashboardView progress={progress} setMode={setMode} />;
       case AppMode.IMAGE_ANALYSIS:
         return <ImageAnalyzer onAddMessage={addMessage} />;
       case AppMode.IMPORT_MEMORY:
         return <MemoryImportView onImport={syncExternalMemory} />;
       case AppMode.LESSONS:
-        return (
-          <div className="flex flex-col items-center justify-start h-full p-6 text-center bg-slate-50 overflow-y-auto pb-32">
-            <h2 className="text-2xl font-bold mb-3 text-slate-800">Structured Lessons</h2>
-            <p className="text-slate-500 mb-8 max-w-md">Tailored modules for Chandler.</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-3xl">
-              {[
-                { title: 'Business Meetings', icon: '💼' },
-                { title: 'SP/Rio Slang', icon: '🇧🇷' },
-                { title: 'Subjunctive', icon: '📝' },
-                { title: 'Etiquette', icon: '🤝' }
-              ].map(topic => (
-                <button 
-                  key={topic.title}
-                  onClick={() => setMode(AppMode.CHAT)}
-                  className="p-6 bg-white border border-slate-100 rounded-2xl hover:border-emerald-500 transition-all text-left group"
-                >
-                  <div className="text-3xl mb-3">{topic.icon}</div>
-                  <div className="font-bold text-slate-800 group-hover:text-emerald-600">{topic.title}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-        );
+        return <LessonsView onStartLesson={startLesson} />;
       default:
-        return <div className="p-10 text-center">Feature under active development...</div>;
+        return <ReviewSessionView progress={progress} onStartReview={(p) => startLesson(p, AppMode.REVIEW_SESSION)} />;
     }
   };
 

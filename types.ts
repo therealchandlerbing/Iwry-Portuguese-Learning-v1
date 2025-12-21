@@ -5,6 +5,7 @@ export enum AppMode {
   TEXT_MODE = 'TEXT_MODE',
   LIVE_VOICE = 'LIVE_VOICE',
   LESSONS = 'LESSONS',
+  REVIEW_SESSION = 'REVIEW_SESSION',
   QUICK_HELP = 'QUICK_HELP',
   IMAGE_ANALYSIS = 'IMAGE_ANALYSIS',
   IMPORT_MEMORY = 'IMPORT_MEMORY'
@@ -51,4 +52,19 @@ export interface Correction {
   original: string;
   corrected: string;
   explanation: string;
+}
+
+export interface LessonSubModule {
+  id: string;
+  title: string;
+  description: string;
+  prompt: string;
+}
+
+export interface LessonModule {
+  id: string;
+  title: string;
+  icon: string;
+  description: string;
+  submodules: LessonSubModule[];
 }

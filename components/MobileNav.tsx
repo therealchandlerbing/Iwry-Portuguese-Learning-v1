@@ -6,7 +6,7 @@ import {
   Smartphone, 
   Mic, 
   LayoutDashboard,
-  MoreHorizontal
+  RefreshCw
 } from 'lucide-react';
 
 interface MobileNavProps {
@@ -18,9 +18,9 @@ const MobileNav: React.FC<MobileNavProps> = ({ currentMode, setMode }) => {
   const items = [
     { mode: AppMode.CHAT, label: 'Chat', icon: <MessageSquare size={20} /> },
     { mode: AppMode.LIVE_VOICE, label: 'Voice', icon: <Mic size={20} /> },
-    { mode: AppMode.TEXT_MODE, label: 'Text', icon: <Smartphone size={20} /> },
+    { mode: AppMode.REVIEW_SESSION, label: 'Review', icon: <RefreshCw size={20} /> },
     { mode: AppMode.DASHBOARD, label: 'Stats', icon: <LayoutDashboard size={20} /> },
-    { mode: AppMode.LESSONS, label: 'More', icon: <MoreHorizontal size={20} /> },
+    { mode: AppMode.LESSONS, label: 'More', icon: <Smartphone size={20} /> },
   ];
 
   return (
