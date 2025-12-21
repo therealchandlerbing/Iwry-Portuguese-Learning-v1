@@ -42,7 +42,8 @@ export async function analyzeMemory(content: string, isImage: boolean = false): 
             }
           },
           grammar: { type: Type.STRING }
-        }
+        },
+        required: ["topic", "vocab", "grammar"]
       }
     }
   });
@@ -56,15 +57,42 @@ export async function analyzeSession(history: { role: string; content: string }[
   
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: [{ role: 'user', parts: [{ text: `Analyze this Portuguese practice session:\n${conversationText}` }] }],
+    contents: [{ role: 'user', parts: [{ text: `Analyze this Portuguese practice session for Chandler:\n${conversationText}` }] }],
     config: {
-      systemInstruction: `You are a language learning analyst. Analyze the dialogue.
-      1. Extract 3-5 NEW vocabulary words the user encountered or struggled with.
-      2. Assess grammar patterns. For each pattern (Future Tense, Subjunctive, etc.), provide a performance score from -0.2 (struggled) to 0.2 (mastered).
-      3. Write a 2-sentence summary of progress in Portuguese.
-      4. Suggest a specific next lesson or focus area.
-      Return as JSON matching the SessionAnalysis interface.`,
-      responseMimeType: "application/json"
+      systemInstruction: `You are a language learning analyst for Chandler's assistant, Iwry. 
+      Analyze the dialogue and extract progress data.
+      The grammarPerformance map should use keys like "Present Tense", "Future Tense", "Subjunctive", "Prepositions", or "Pronouns".
+      Scores should be small adjustments: e.g., 0.05 for good usage, -0.05 for struggle.`,
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          newVocab: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                word: { type: Type.STRING },
+                meaning: { type: Type.STRING }
+              },
+              required: ["word", "meaning"]
+            }
+          },
+          grammarPerformance: {
+            type: Type.OBJECT,
+            properties: {
+              "Present Tense": { type: Type.NUMBER },
+              "Future Tense": { type: Type.NUMBER },
+              "Subjunctive": { type: Type.NUMBER },
+              "Prepositions": { type: Type.NUMBER },
+              "Pronouns": { type: Type.NUMBER }
+            }
+          },
+          summaryText: { type: Type.STRING },
+          nextStepRecommendation: { type: Type.STRING }
+        },
+        required: ["newVocab", "grammarPerformance", "summaryText", "nextStepRecommendation"]
+      }
     }
   });
 

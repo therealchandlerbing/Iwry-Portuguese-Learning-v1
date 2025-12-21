@@ -3,8 +3,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Modality, LiveServerMessage } from '@google/genai';
 import { Mic, MicOff, Volume2, Info, AlertCircle } from 'lucide-react';
 import { decode, encode, decodeAudioData } from '../services/geminiService';
+import { MemoryEntry } from '../types';
 
-const LiveVoiceView: React.FC = () => {
+// Add memories to props interface to fix assignment error in App.tsx
+interface LiveVoiceViewProps {
+  memories?: MemoryEntry[];
+}
+
+const LiveVoiceView: React.FC<LiveVoiceViewProps> = ({ memories }) => {
   const [isActive, setIsActive] = useState(false);
   const [status, setStatus] = useState<'idle' | 'connecting' | 'listening' | 'speaking'>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -20,6 +26,7 @@ const LiveVoiceView: React.FC = () => {
     setError(null);
 
     try {
+      // Use process.env.API_KEY as per guidelines
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       
       inputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
@@ -101,7 +108,8 @@ const LiveVoiceView: React.FC = () => {
           speechConfig: {
             voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } }
           },
-          systemInstruction: 'You are Iwry, a dedicated Brazilian Portuguese learning assistant for Chandler. Talk naturally in Portuguese. Be helpful and encouraging.'
+          // Reference the memories in system instruction to make Iwry context-aware
+          systemInstruction: `You are Iwry, a dedicated Brazilian Portuguese learning assistant for Chandler. Talk naturally in Portuguese. Be helpful and encouraging. ${memories && memories.length > 0 ? `Context: you are aware Chandler recently studied topics like: ${memories.slice(0, 5).map(m => m.topic).join(', ')}.` : ''}`
         }
       });
 

@@ -14,6 +14,7 @@ import EntryScreen from './components/EntryScreen';
 import LessonsView from './components/LessonsView';
 import ReviewSessionView from './components/ReviewSessionView';
 import QuizView from './components/QuizView';
+import SessionSummaryModal from './components/SessionSummaryModal';
 import { analyzeSession } from './services/geminiService';
 
 const INITIAL_PROGRESS: UserProgress = {
@@ -41,6 +42,7 @@ const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [mode, setMode] = useState<AppMode>(AppMode.DASHBOARD);
   const [progress, setProgress] = useState<UserProgress>(INITIAL_PROGRESS);
+  const [lastAnalysis, setLastAnalysis] = useState<SessionAnalysis | null>(null);
   const [activeQuizTopic, setActiveQuizTopic] = useState<{title: string, description: string} | null>(null);
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -51,12 +53,32 @@ const App: React.FC = () => {
     }
   ]);
 
+  // Load progress from localStorage
   useEffect(() => {
+    const saved = localStorage.getItem('fala_comigo_progress');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        // Fix date strings back to objects
+        parsed.lastSessionDate = new Date(parsed.lastSessionDate);
+        parsed.vocabulary = parsed.vocabulary.map((v: any) => ({ ...v, lastPracticed: new Date(v.lastPracticed) }));
+        parsed.memories = parsed.memories.map((m: any) => ({ ...m, date: new Date(m.date) }));
+        setProgress(parsed);
+      } catch (e) {
+        console.error("Failed to load progress", e);
+      }
+    }
+    
     const timer = setTimeout(() => {
       setIsAppLoading(false);
     }, 2000);
     return () => clearTimeout(timer);
   }, []);
+
+  // Save progress on change
+  useEffect(() => {
+    localStorage.setItem('fala_comigo_progress', JSON.stringify(progress));
+  }, [progress]);
 
   const addMessage = (msg: Omit<Message, 'id' | 'timestamp'>) => {
     setMessages(prev => [...prev, {
@@ -67,7 +89,7 @@ const App: React.FC = () => {
   };
 
   const startLesson = (prompt: string, customMode: AppMode = AppMode.CHAT) => {
-    setMessages([]); // Clear previous chat for new focused session
+    setMessages([]);
     setMode(customMode);
     addMessage({
       role: 'user',
@@ -82,38 +104,51 @@ const App: React.FC = () => {
     }
 
     const history = messages.map(m => ({ role: m.role, content: m.content }));
-    const analysis: SessionAnalysis = await analyzeSession(history);
-    
-    setProgress(prev => {
-      // 1. Update Vocabulary
-      const existingWords = new Set(prev.vocabulary.map(v => v.word.toLowerCase()));
-      const filteredNewVocab = analysis.newVocab
-        .filter(v => !existingWords.has(v.word.toLowerCase()))
-        .map(v => ({ ...v, confidence: 10, lastPracticed: new Date() }));
+    try {
+      const analysis: SessionAnalysis = await analyzeSession(history);
       
-      const updatedVocab = [...prev.vocabulary, ...filteredNewVocab].slice(-100);
+      setProgress(prev => {
+        // 1. Update Vocabulary
+        const existingWords = new Set(prev.vocabulary.map(v => v.word.toLowerCase()));
+        const filteredNewVocab = analysis.newVocab
+          .filter(v => !existingWords.has(v.word.toLowerCase()))
+          .map(v => ({ ...v, confidence: 10, lastPracticed: new Date() }));
+        
+        const updatedVocab = [...prev.vocabulary, ...filteredNewVocab].slice(-200);
 
-      // 2. Update Grammar
-      const newGrammarMastery = { ...prev.grammarMastery };
-      Object.entries(analysis.grammarPerformance).forEach(([pattern, delta]) => {
-        if (newGrammarMastery[pattern] !== undefined) {
-          newGrammarMastery[pattern] = Math.max(0, Math.min(1, newGrammarMastery[pattern] + delta));
-        } else {
-          newGrammarMastery[pattern] = Math.max(0, Math.min(1, 0.5 + delta));
+        // 2. Update Grammar
+        const newGrammarMastery = { ...prev.grammarMastery };
+        Object.entries(analysis.grammarPerformance).forEach(([pattern, delta]) => {
+          if (newGrammarMastery[pattern] !== undefined) {
+            newGrammarMastery[pattern] = Math.max(0, Math.min(1, newGrammarMastery[pattern] + delta));
+          } else {
+            newGrammarMastery[pattern] = Math.max(0.1, Math.min(1, 0.5 + delta));
+          }
+        });
+
+        // 3. Update Streak if needed
+        const today = new Date().toDateString();
+        const last = new Date(prev.lastSessionDate).toDateString();
+        let newStreak = prev.streak;
+        if (today !== last) {
+           newStreak += 1;
         }
+
+        return {
+          ...prev,
+          vocabulary: updatedVocab,
+          grammarMastery: newGrammarMastery,
+          sessionCount: prev.sessionCount + 1,
+          lastSessionDate: new Date(),
+          streak: newStreak
+        };
       });
 
-      return {
-        ...prev,
-        vocabulary: updatedVocab,
-        grammarMastery: newGrammarMastery,
-        sessionCount: prev.sessionCount + 1,
-        lastSessionDate: new Date()
-      };
-    });
-
-    setMode(AppMode.DASHBOARD);
-    alert(`Session Complete! Iwry analyzed your progress:\n\n${analysis.summaryText}\n\nRecommended: ${analysis.nextStepRecommendation}`);
+      setLastAnalysis(analysis);
+    } catch (err) {
+      console.error("Analysis failed", err);
+      setMode(AppMode.DASHBOARD);
+    }
   };
 
   const startQuiz = (title: string, description: string) => {
@@ -154,7 +189,7 @@ const App: React.FC = () => {
     setProgress(prev => ({
       ...prev,
       memories: [newMemory, ...prev.memories],
-      vocabulary: [...prev.vocabulary, ...newVocabItems].slice(-100)
+      vocabulary: [...prev.vocabulary, ...newVocabItems].slice(-200)
     }));
 
     setMode(AppMode.DASHBOARD);
@@ -205,6 +240,17 @@ const App: React.FC = () => {
         </div>
       </div>
       <MobileNav currentMode={mode} setMode={setMode} />
+      
+      {/* Session Summary Overlay */}
+      {lastAnalysis && (
+        <SessionSummaryModal 
+          analysis={lastAnalysis} 
+          onClose={() => {
+            setLastAnalysis(null);
+            setMode(AppMode.DASHBOARD);
+          }} 
+        />
+      )}
     </div>
   );
 };

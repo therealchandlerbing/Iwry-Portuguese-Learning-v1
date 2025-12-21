@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { AppMode, Message } from '../types';
-import { Send, Mic, Volume2, Loader2, Square, Target, MapPin, Coffee, Utensils, ShoppingBag, Sparkles, LogOut } from 'lucide-react';
+import { Send, Mic, Volume2, Loader2, Square, Target, MapPin, Coffee, Utensils, ShoppingBag, Sparkles, LogOut, Image as ImageIcon, X } from 'lucide-react';
 import { generateChatResponse, textToSpeech, transcribeAudio, decodeAudioData } from '../services/geminiService';
 
 interface ChatViewProps {
@@ -25,9 +25,11 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, memor
   const [loading, setLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [audioLoading, setAudioLoading] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -39,15 +41,19 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, memor
 
   const handleSend = async (textOverride?: string) => {
     const text = textOverride || input;
-    if (!text.trim()) return;
+    if (!text.trim() && !selectedImage) return;
 
+    const currentImage = selectedImage;
     if (!textOverride) setInput('');
-    onAddMessage({ role: 'user', content: text });
+    setSelectedImage(null);
+
+    onAddMessage({ role: 'user', content: text, imageUrl: currentImage || undefined });
     setLoading(true);
 
     try {
       const chatHistory = messages.map(m => ({ role: m.role, content: m.content }));
-      const response = await generateChatResponse(mode, chatHistory, text, memories, undefined, selectedTopics);
+      // Pass selected topics and current image to provide context
+      const response = await generateChatResponse(mode, chatHistory, text, memories, currentImage || undefined, selectedTopics);
       onAddMessage({ role: 'assistant', content: response });
     } catch (err) {
       console.error(err);
@@ -55,6 +61,19 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, memor
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSelectedImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+    // Clear input so same file can be selected again
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const playAudio = async (text: string, msgId: string) => {
@@ -175,11 +194,16 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, memor
           <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[88%] sm:max-w-[80%] group ${msg.role === 'user' ? 'order-2' : ''}`}>
               <div className={`flex items-end gap-1.5 sm:gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                <div className={`rounded-2xl px-4 py-2.5 sm:py-3 shadow-sm text-[15px] sm:text-base ${
+                <div className={`rounded-2xl px-4 py-2.5 sm:py-3 shadow-sm text-[15px] sm:text-base space-y-2 ${
                   msg.role === 'user' 
                     ? 'bg-emerald-600 text-white rounded-tr-none' 
                     : 'bg-white text-slate-800 border border-slate-100 rounded-tl-none'
                 }`}>
+                  {msg.imageUrl && (
+                    <div className="rounded-xl overflow-hidden mb-2">
+                      <img src={msg.imageUrl} alt="User upload" className="max-w-full h-auto" />
+                    </div>
+                  )}
                   <p className="whitespace-pre-wrap leading-tight sm:leading-relaxed">{msg.content}</p>
                 </div>
                 
@@ -211,36 +235,67 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, memor
       </div>
 
       <div className="p-3 sm:p-4 bg-white/80 backdrop-blur-xl border-t border-slate-100 sticky bottom-0 z-40">
-        <div className="max-w-4xl mx-auto flex items-center gap-2.5">
-          <button 
-            onTouchStart={startRecording}
-            onTouchEnd={stopRecording}
-            onMouseDown={startRecording}
-            onMouseUp={stopRecording}
-            className={`p-3.5 rounded-full transition-all shadow-sm ${
-              isRecording ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-100 text-slate-500 active:bg-slate-200'
-            }`}
-          >
-            {isRecording ? <Square size={20} /> : <Mic size={20} />}
-          </button>
-          
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder={isRecording ? "Ouvindo..." : "Escreva em português..."}
-            className="flex-1 bg-slate-100 border-none rounded-2xl px-4 py-3 text-[16px] text-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
-            disabled={loading}
-          />
-          
-          <button 
-            onClick={() => handleSend()}
-            disabled={!input.trim() || loading}
-            className="p-3.5 bg-emerald-600 text-white rounded-2xl active:bg-emerald-700 disabled:opacity-30 disabled:grayscale transition-all shadow-lg shadow-emerald-500/10"
-          >
-            <Send size={20} />
-          </button>
+        <div className="max-w-4xl mx-auto space-y-3">
+          {/* Image Preview Area */}
+          {selectedImage && (
+            <div className="relative inline-block animate-in slide-in-from-bottom-2 duration-300">
+              <img src={selectedImage} alt="Selected" className="h-20 w-auto rounded-xl border-2 border-emerald-500 shadow-lg object-cover" />
+              <button 
+                onClick={() => setSelectedImage(null)}
+                className="absolute -top-2 -right-2 bg-slate-900 text-white p-1 rounded-full shadow-lg border border-white"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-1.5">
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                className="p-3.5 bg-slate-100 text-slate-500 rounded-full hover:bg-emerald-50 hover:text-emerald-600 transition-all shadow-sm"
+              >
+                <ImageIcon size={20} />
+              </button>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleFileChange} 
+                className="hidden" 
+                accept="image/*" 
+              />
+              
+              <button 
+                onTouchStart={startRecording}
+                onTouchEnd={stopRecording}
+                onMouseDown={startRecording}
+                onMouseUp={stopRecording}
+                className={`p-3.5 rounded-full transition-all shadow-sm ${
+                  isRecording ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-100 text-slate-500 active:bg-slate-200'
+                }`}
+              >
+                {isRecording ? <Square size={20} /> : <Mic size={20} />}
+              </button>
+            </div>
+            
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+              placeholder={isRecording ? "Ouvindo..." : "Escreva em português..."}
+              className="flex-1 bg-slate-100 border-none rounded-2xl px-4 py-3 text-[16px] text-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+              disabled={loading}
+            />
+            
+            <button 
+              onClick={() => handleSend()}
+              disabled={(!input.trim() && !selectedImage) || loading}
+              className="p-3.5 bg-emerald-600 text-white rounded-2xl active:bg-emerald-700 disabled:opacity-30 disabled:grayscale transition-all shadow-lg shadow-emerald-500/10"
+            >
+              <Send size={20} />
+            </button>
+          </div>
         </div>
       </div>
     </div>
