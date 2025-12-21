@@ -10,7 +10,8 @@ export enum AppMode {
   IMAGE_ANALYSIS = 'IMAGE_ANALYSIS',
   IMPORT_MEMORY = 'IMPORT_MEMORY',
   QUIZ = 'QUIZ',
-  CORRECTION_LIBRARY = 'CORRECTION_LIBRARY'
+  CORRECTION_LIBRARY = 'CORRECTION_LIBRARY',
+  LEARNING_LOG = 'LEARNING_LOG'
 }
 
 export enum DifficultyLevel {
@@ -27,6 +28,16 @@ export interface CorrectionObject {
   category: string;
   difficulty: DifficultyLevel;
   timestamp: Date;
+}
+
+export interface ChatSessionLog {
+  id: string;
+  timestamp: Date;
+  mode: AppMode;
+  summary: string;
+  messages: Message[];
+  newVocabCount: number;
+  difficulty: DifficultyLevel;
 }
 
 export interface Message {
@@ -77,6 +88,7 @@ export interface UserProgress {
   totalPracticeMinutes: number;
   memories: MemoryEntry[];
   correctionHistory: CorrectionObject[];
+  sessionLogs: ChatSessionLog[];
   streak: number;
   selectedTopics: string[]; 
   lastSessionDate: Date;

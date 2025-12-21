@@ -12,7 +12,8 @@ import {
   RefreshCw,
   ChevronRight,
   TrendingUp,
-  History
+  History,
+  FileText
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -38,6 +39,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentMode, setMode, progress }) => 
         { mode: AppMode.LESSONS, label: 'Structured Lessons', icon: <BookOpen size={18} /> },
         { mode: AppMode.REVIEW_SESSION, label: 'Review Center', icon: <RefreshCw size={18} /> },
         { mode: AppMode.CORRECTION_LIBRARY, label: 'Corrections', icon: <History size={18} /> },
+        { mode: AppMode.LEARNING_LOG, label: 'Learning Log', icon: <FileText size={18} /> },
       ]
     },
     {

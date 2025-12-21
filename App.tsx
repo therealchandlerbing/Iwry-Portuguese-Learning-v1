@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { AppMode, Message, UserProgress, VocabItem, MemoryEntry, SessionAnalysis, DifficultyLevel, CorrectionObject, LessonModule, Badge } from './types';
+import { AppMode, Message, UserProgress, VocabItem, MemoryEntry, SessionAnalysis, DifficultyLevel, CorrectionObject, LessonModule, Badge, ChatSessionLog } from './types';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import ChatView from './components/ChatView';
@@ -16,6 +16,7 @@ import ReviewSessionView from './components/ReviewSessionView';
 import QuizView from './components/QuizView';
 import SessionSummaryModal from './components/SessionSummaryModal';
 import CorrectionLibraryView from './components/CorrectionLibraryView';
+import LearningLogView from './components/LearningLogView';
 import { analyzeSession, checkGrammar } from './services/geminiService';
 import { DEFAULT_BADGES } from './constants';
 
@@ -34,6 +35,7 @@ const INITIAL_PROGRESS: UserProgress = {
   totalPracticeMinutes: 0,
   memories: [],
   correctionHistory: [],
+  sessionLogs: [],
   streak: 0,
   selectedTopics: [],
   lastSessionDate: new Date(),
@@ -65,9 +67,14 @@ const App: React.FC = () => {
       try {
         const parsed = JSON.parse(saved);
         parsed.lastSessionDate = new Date(parsed.lastSessionDate);
-        parsed.vocabulary = parsed.vocabulary.map((v: any) => ({ ...v, lastPracticed: new Date(v.lastPracticed) }));
-        parsed.memories = parsed.memories.map((m: any) => ({ ...m, date: new Date(m.date) }));
+        parsed.vocabulary = (parsed.vocabulary || []).map((v: any) => ({ ...v, lastPracticed: new Date(v.lastPracticed) }));
+        parsed.memories = (parsed.memories || []).map((m: any) => ({ ...m, date: new Date(m.date) }));
         parsed.correctionHistory = (parsed.correctionHistory || []).map((c: any) => ({ ...c, timestamp: new Date(c.timestamp) }));
+        parsed.sessionLogs = (parsed.sessionLogs || []).map((log: any) => ({
+          ...log,
+          timestamp: new Date(log.timestamp),
+          messages: log.messages.map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) }))
+        }));
         if (!parsed.badges) parsed.badges = DEFAULT_BADGES;
         else {
           parsed.badges = parsed.badges.map((b: any) => b.earnedDate ? { ...b, earnedDate: new Date(b.earnedDate) } : b);
@@ -196,6 +203,10 @@ const App: React.FC = () => {
     }
 
     const history = messages.map(m => ({ role: m.role, content: m.content }));
+    const currentMode = mode;
+    const currentMessages = [...messages];
+    const currentDifficulty = progress.difficulty;
+
     try {
       const analysis: SessionAnalysis = await analyzeSession(history);
       
@@ -223,13 +234,24 @@ const App: React.FC = () => {
            newStreak += 1;
         }
 
+        const newLog: ChatSessionLog = {
+          id: Math.random().toString(36).substr(2, 9),
+          timestamp: new Date(),
+          mode: currentMode,
+          summary: analysis.summaryText,
+          messages: currentMessages,
+          newVocabCount: filteredNewVocab.length,
+          difficulty: currentDifficulty
+        };
+
         return {
           ...prev,
           vocabulary: updatedVocab,
           grammarMastery: newGrammarMastery,
           sessionCount: prev.sessionCount + 1,
           lastSessionDate: new Date(),
-          streak: newStreak
+          streak: newStreak,
+          sessionLogs: [newLog, ...(prev.sessionLogs || [])].slice(0, 30)
         };
       });
 
@@ -316,6 +338,8 @@ const App: React.FC = () => {
         return activeQuizTopic ? <QuizView topic={activeQuizTopic} onComplete={() => setMode(AppMode.LESSONS)} /> : <DashboardView progress={progress} setMode={setMode} onStartLesson={startLesson} newlyEarnedBadgeIds={newlyEarnedBadgeIds} clearNewlyEarned={() => setNewlyEarnedBadgeIds([])} />;
       case AppMode.CORRECTION_LIBRARY:
         return <CorrectionLibraryView history={progress.correctionHistory} onStartReview={(p) => startLesson(p, AppMode.REVIEW_SESSION)} />;
+      case AppMode.LEARNING_LOG:
+        return <LearningLogView logs={progress.sessionLogs} />;
       default:
         return <ReviewSessionView progress={progress} onStartReview={(p) => startLesson(p, AppMode.REVIEW_SESSION)} />;
     }

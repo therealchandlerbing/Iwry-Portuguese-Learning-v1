@@ -22,6 +22,7 @@ const Header: React.FC<HeaderProps> = ({ mode, streak, difficulty, setDifficulty
       case AppMode.IMPORT_MEMORY: return 'Import Learning';
       case AppMode.IMAGE_ANALYSIS: return 'Visual Learning';
       case AppMode.CORRECTION_LIBRARY: return 'Correction History';
+      case AppMode.LEARNING_LOG: return 'Learning Log';
       default: return 'Fala Comigo';
     }
   };
