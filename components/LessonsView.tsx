@@ -219,6 +219,42 @@ const MODULES: LessonModule[] = [
         grammarExplanation: 'Brazilians use many English loanwords in tech (start-up, mindset, budget) but pronounce them with a distinct accent (start-úpi).'
       }
     ]
+  },
+  {
+    id: 'advanced-grammar',
+    title: 'Advanced Grammar',
+    icon: 'GraduationCap',
+    description: 'Deep dive into complex structures for higher fluency.',
+    submodules: [
+      { 
+        id: 'ag1', 
+        title: 'The Passive Voice', 
+        description: 'Shifting focus from the actor to the action (Voz Passiva).', 
+        prompt: 'Let\'s practice the passive voice. Describe a series of historical events or innovation processes using "ser + particípio".',
+        grammarExplanation: 'Formation: [Subject] + [Ser/Estar] + [Past Participle]. Example: "O relatório foi escrito (not escreveu) pelo Chandler." Used often in formal reports and academic contexts.'
+      },
+      { 
+        id: 'ag2', 
+        title: 'Mastering the Gerund', 
+        description: 'Using "-ndo" to describe ongoing actions and simultaneous events.', 
+        prompt: 'Tell me what is happening right now in your SP office. Use at least 5 different gerunds to describe the scene.',
+        grammarExplanation: 'In Brazil, the gerund is almost always preferred over the European "a + infinitive". "Estou fazendo" is natural. Note: Avoid "Gerundismo" (excessive future gerunds) in professional SP like "vou estar retornando".'
+      },
+      { 
+        id: 'ag3', 
+        title: 'Irregular Past Tenses', 
+        description: 'Conquering the tricky "Pretérito Perfeito" of irregular verbs.', 
+        prompt: 'Let\'s practice a quiz on irregular past verbs. I will ask you what you DID yesterday using verbs like Trazer, Saber, Ver, and Por.',
+        grammarExplanation: 'These verbs change their stems completely. Trazer -> Trouxe, Saber -> Soube, Pôr -> Pus, Dizer -> Disse. They are essential for accurate storytelling in professional debriefs.'
+      },
+      { 
+        id: 'ag4', 
+        title: 'Personal Infinitive', 
+        description: 'The unique Portuguese structure for clarity in action.', 
+        prompt: 'Let\'s practice the Personal Infinitive. We are setting goals for a team. "É importante nós terminarmos..."',
+        grammarExplanation: 'This allows the infinitive to be conjugated to show WHO is acting. Use it after impersonal expressions like "É bom...", "Para...", or "Sem...". Ex: "Para eles chegarem (not chegar) a tempo."'
+      }
+    ]
   }
 ];
 
