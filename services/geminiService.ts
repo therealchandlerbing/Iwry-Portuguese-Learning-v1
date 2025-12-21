@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, Modality, GenerateContentResponse, LiveServerMessage, Type } from "@google/genai";
 import { SYSTEM_INSTRUCTIONS } from "../constants";
-import { QuizQuestion } from "../types";
+import { QuizQuestion, SessionAnalysis } from "../types";
 
 export const getGeminiClient = () => {
   return new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -44,6 +44,27 @@ export async function analyzeMemory(content: string, isImage: boolean = false): 
           grammar: { type: Type.STRING }
         }
       }
+    }
+  });
+
+  return JSON.parse(response.text || "{}");
+}
+
+export async function analyzeSession(history: { role: string; content: string }[]): Promise<SessionAnalysis> {
+  const ai = getGeminiClient();
+  const conversationText = history.map(h => `${h.role}: ${h.content}`).join('\n');
+  
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: [{ role: 'user', parts: [{ text: `Analyze this Portuguese practice session:\n${conversationText}` }] }],
+    config: {
+      systemInstruction: `You are a language learning analyst. Analyze the dialogue.
+      1. Extract 3-5 NEW vocabulary words the user encountered or struggled with.
+      2. Assess grammar patterns. For each pattern (Future Tense, Subjunctive, etc.), provide a performance score from -0.2 (struggled) to 0.2 (mastered).
+      3. Write a 2-sentence summary of progress in Portuguese.
+      4. Suggest a specific next lesson or focus area.
+      Return as JSON matching the SessionAnalysis interface.`,
+      responseMimeType: "application/json"
     }
   });
 

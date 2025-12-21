@@ -7,28 +7,70 @@ import {
 } from 'recharts';
 import { 
   Trophy, Zap, Book, Star, PlusCircle, MessageCircle, PlayCircle, 
-  Hash, TrendingUp, Target, Layers, RotateCcw, Check, X, ChevronRight, Sparkles, Volume2, Loader2 
+  Hash, TrendingUp, Target, Layers, RotateCcw, Check, X, ChevronRight, Sparkles, Volume2, Loader2, Lightbulb 
 } from 'lucide-react';
 import { textToSpeech, decodeAudioData } from '../services/geminiService';
 
 interface DashboardViewProps {
   progress: UserProgress;
   setMode: (mode: AppMode) => void;
+  onStartLesson?: (prompt: string) => void;
 }
 
-const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode }) => {
+const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStartLesson }) => {
   const [isStudyMode, setIsStudyMode] = useState(false);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [sessionCompleted, setSessionCompleted] = useState(false);
   const [audioLoading, setAudioLoading] = useState(false);
 
-  // Filter and sort deck: Focus on low confidence items
   const studyDeck = useMemo(() => {
     return [...progress.vocabulary]
       .sort((a, b) => a.confidence - b.confidence)
       .slice(0, 10);
   }, [progress.vocabulary]);
+
+  const recommendations = useMemo(() => {
+    const recs = [];
+    
+    // Find lowest grammar mastery
+    // Added type assertions to a[1] and b[1] to fix arithmetic operation errors
+    const lowestGrammar = Object.entries(progress.grammarMastery)
+      .sort((a, b) => (a[1] as number) - (b[1] as number))[0];
+    
+    // Added type assertion to lowestGrammar[1] to fix comparison and multiplication errors
+    if (lowestGrammar && (lowestGrammar[1] as number) < 0.6) {
+      recs.push({
+        id: 'grammar',
+        title: `Pratique ${lowestGrammar[0]}`,
+        desc: `Sua maestria está em ${Math.round((lowestGrammar[1] as number) * 100)}%. Vamos melhorar?`,
+        prompt: `Quero praticar especificamente ${lowestGrammar[0]}. Pode me dar alguns exemplos e exercícios?`
+      });
+    }
+
+    // Check recent memories
+    if (progress.memories.length > 0) {
+      const latest = progress.memories[0];
+      recs.push({
+        id: 'memory',
+        title: `Aplique seu estudo: ${latest.topic}`,
+        desc: `Você importou este tema recentemente. Vamos usar o vocabulário em uma conversa real?`,
+        prompt: `Vamos ter uma conversa usando o vocabulário do meu estudo sobre "${latest.topic}".`
+      });
+    }
+
+    // Default recommendation if needed
+    if (recs.length < 2) {
+      recs.push({
+        id: 'casual',
+        title: 'Bate-papo de Faria Lima',
+        desc: 'Pratique seu "business Portuguese" para reuniões em São Paulo.',
+        prompt: 'Vamos praticar uma conversa de networking profissional em São Paulo.'
+      });
+    }
+
+    return recs;
+  }, [progress]);
 
   const handleNextCard = () => {
     setIsFlipped(false);
@@ -48,7 +90,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode }) => {
   };
 
   const playPronunciation = async (e: React.MouseEvent, word: string) => {
-    e.stopPropagation(); // Prevent card from flipping
+    e.stopPropagation();
     if (audioLoading) return;
     
     setAudioLoading(true);
@@ -69,13 +111,11 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode }) => {
     }
   };
 
-  // 1. Heatmap Data
   const grammarData = Object.entries(progress.grammarMastery).map(([name, value]) => ({
     name,
     mastery: Math.round((value as number) * 100)
   }));
 
-  // 2. Activity Timeline Data
   const activityTimeline = [
     { day: 'Seg', minutes: 15, lessons: 1 },
     { day: 'Ter', minutes: 30, lessons: 2 },
@@ -83,10 +123,9 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode }) => {
     { day: 'Qui', minutes: 45, lessons: 3 },
     { day: 'Sex', minutes: 20, lessons: 1 },
     { day: 'Sáb', minutes: 60, lessons: 4 },
-    { day: 'Dom', minutes: progress.totalPracticeMinutes % 60, lessons: progress.lessonsCompleted.length % 5 },
+    { day: 'Dom', minutes: 25, lessons: 1 },
   ];
 
-  // 3. Radar Chart Data
   const radarData = [
     { subject: 'Professional', A: 85, fullMark: 100 },
     { subject: 'Social', A: 65, fullMark: 100 },
@@ -99,7 +138,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode }) => {
   const stats = [
     { label: 'Vocabulary', value: progress.vocabulary.length, icon: <Book className="text-blue-500" size={18} /> },
     { label: 'Practice Time', value: `${progress.totalPracticeMinutes}m`, icon: <Zap className="text-yellow-500" size={18} /> },
-    { label: 'Est. Level', value: progress.level, icon: <Star className="text-emerald-500" size={18} /> },
+    { label: 'Sessions', value: progress.sessionCount, icon: <MessageCircle className="text-purple-500" size={18} /> },
     { label: 'Streak', value: `${progress.streak} days`, icon: <Trophy className="text-orange-500" size={18} /> }
   ];
 
@@ -107,8 +146,6 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode }) => {
     return (
       <div className="h-full bg-slate-50 p-6 flex flex-col items-center justify-center overflow-hidden">
         <div className="max-w-md w-full flex flex-col items-center gap-8 relative h-full justify-center">
-          
-          {/* Header & Progress */}
           {!sessionCompleted && (
             <div className="w-full space-y-4 text-center">
               <div className="flex items-center justify-between px-2">
@@ -118,7 +155,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode }) => {
                 <span className="text-sm font-bold text-slate-400 tracking-widest uppercase">
                   {currentCardIndex + 1} / {studyDeck.length}
                 </span>
-                <div className="w-6 h-6" /> {/* Spacer */}
+                <div className="w-6 h-6" />
               </div>
               <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
                 <div 
@@ -135,7 +172,6 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode }) => {
                 onClick={() => setIsFlipped(!isFlipped)}
                 className={`relative w-full aspect-[3/4] transition-all duration-700 transform-style-3d cursor-pointer ${isFlipped ? 'rotate-y-180' : ''}`}
               >
-                {/* Front */}
                 <div className="absolute inset-0 backface-hidden bg-white rounded-[3rem] shadow-2xl shadow-slate-200 border border-slate-100 flex flex-col items-center justify-center p-10 text-center space-y-6">
                   <div className="bg-emerald-50 p-4 rounded-3xl text-emerald-600">
                     <Layers size={32} />
@@ -155,7 +191,6 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode }) => {
                   </div>
                 </div>
 
-                {/* Back */}
                 <div className="absolute inset-0 backface-hidden rotate-y-180 bg-emerald-600 rounded-[3rem] shadow-2xl shadow-emerald-500/20 flex flex-col items-center justify-center p-10 text-center text-white space-y-6">
                    <div className="bg-white/20 p-4 rounded-3xl">
                     <Star size={32} />
@@ -167,7 +202,6 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode }) => {
                 </div>
               </div>
 
-              {/* Action Buttons */}
               <div className={`mt-10 flex gap-4 transition-all duration-500 ${isFlipped ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
                 <button 
                   onClick={(e) => { e.stopPropagation(); handleNextCard(); }}
@@ -214,7 +248,6 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode }) => {
 
   return (
     <div className="p-4 sm:p-8 space-y-8 overflow-y-auto h-full bg-slate-50 pb-28">
-      {/* Welcome Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Bom dia, Chandler! 🇧🇷</h1>
@@ -226,63 +259,103 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode }) => {
         </div>
       </div>
 
-      {/* Quick Start Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <button 
-          onClick={() => setMode(AppMode.CHAT)}
-          className="bg-emerald-600 text-white p-6 rounded-[2.5rem] text-left hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-500/20 group relative overflow-hidden"
-        >
-          <div className="relative z-10">
-            <div className="bg-white/20 p-3 rounded-2xl w-fit mb-4 group-hover:scale-110 transition-transform">
-              <MessageCircle size={24} />
-            </div>
-            <h3 className="font-bold text-xl mb-1">Conversar</h3>
-            <p className="text-emerald-100 text-sm opacity-90">Pratique com o Iwry.</p>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <button 
+              onClick={() => setMode(AppMode.CHAT)}
+              className="bg-emerald-600 text-white p-6 rounded-[2.5rem] text-left hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-500/20 group relative overflow-hidden h-40"
+            >
+              <div className="relative z-10 flex flex-col justify-between h-full">
+                <div className="bg-white/20 p-3 rounded-2xl w-fit group-hover:scale-110 transition-transform">
+                  <MessageCircle size={24} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-xl mb-1">Conversar</h3>
+                  <p className="text-emerald-100 text-sm opacity-90">Pratique com o Iwry.</p>
+                </div>
+              </div>
+              <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
+            </button>
+            
+            <button 
+              onClick={() => setIsStudyMode(true)}
+              className="bg-orange-500 text-white p-6 rounded-[2.5rem] text-left hover:bg-orange-600 transition-all shadow-xl shadow-orange-500/20 group relative overflow-hidden h-40"
+            >
+              <div className="relative z-10 flex flex-col justify-between h-full">
+                <div className="bg-white/20 p-3 rounded-2xl w-fit group-hover:scale-110 transition-transform">
+                  <Layers size={24} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-xl mb-1">Flashcards</h3>
+                  <p className="text-orange-100 text-sm opacity-90">Revisar 10 palavras.</p>
+                </div>
+              </div>
+              <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
+            </button>
           </div>
-          <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
-        </button>
-        
-        <button 
-          onClick={() => setIsStudyMode(true)}
-          className="bg-orange-500 text-white p-6 rounded-[2.5rem] text-left hover:bg-orange-600 transition-all shadow-xl shadow-orange-500/20 group relative overflow-hidden"
-        >
-          <div className="relative z-10">
-            <div className="bg-white/20 p-3 rounded-2xl w-fit mb-4 group-hover:scale-110 transition-transform">
-              <Layers size={24} />
-            </div>
-            <h3 className="font-bold text-xl mb-1">Flashcards</h3>
-            <p className="text-orange-100 text-sm opacity-90">Revisar 10 palavras.</p>
-          </div>
-          <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
-        </button>
 
-        <button 
-          onClick={() => setMode(AppMode.TEXT_MODE)}
-          className="bg-white border border-slate-200 p-6 rounded-[2.5rem] text-left hover:border-emerald-500 hover:shadow-lg transition-all group"
-        >
-          <div className="bg-slate-100 p-3 rounded-2xl w-fit mb-4 group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-all">
-            <Hash size={24} />
-          </div>
-          <h3 className="font-bold text-xl text-slate-800 mb-1">WhatsApp</h3>
-          <p className="text-slate-500 text-sm">Gírias e abreviações.</p>
-        </button>
-
-        <button 
-          onClick={() => setMode(AppMode.LIVE_VOICE)}
-          className="bg-slate-900 text-white p-6 rounded-[2.5rem] text-left hover:bg-black transition-all shadow-xl shadow-slate-900/20 group relative overflow-hidden"
-        >
-          <div className="relative z-10">
-            <div className="bg-white/10 p-3 rounded-2xl w-fit mb-4 group-hover:scale-110 transition-transform">
-              <PlayCircle size={24} />
+          <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
+                <Lightbulb size={18} />
+              </div>
+              <h3 className="text-lg font-bold text-slate-800">Recomendado para Você</h3>
             </div>
-            <h3 className="font-bold text-xl mb-1">Chamada</h3>
-            <p className="text-slate-400 text-sm">Em tempo real.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {recommendations.map(rec => (
+                <div key={rec.id} className="p-6 bg-slate-50 border border-slate-100 rounded-[2rem] hover:border-emerald-200 transition-all flex flex-col justify-between">
+                  <div>
+                    <h4 className="font-bold text-slate-800 mb-2">{rec.title}</h4>
+                    <p className="text-xs text-slate-500 leading-relaxed mb-4">{rec.desc}</p>
+                  </div>
+                  <button 
+                    onClick={() => onStartLesson && onStartLesson(rec.prompt)}
+                    className="w-full py-2 bg-white text-emerald-600 text-xs font-bold rounded-xl border border-emerald-100 hover:bg-emerald-600 hover:text-white transition-all flex items-center justify-center gap-2"
+                  >
+                    Iniciar <ChevronRight size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl"></div>
-        </button>
+        </div>
+
+        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col">
+          <h3 className="text-lg font-bold mb-6 text-slate-800">Seus Estudos Externos</h3>
+          <button 
+            onClick={() => setMode(AppMode.IMPORT_MEMORY)}
+            className="bg-slate-900 text-white w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/10 active:scale-95 mb-6"
+          >
+            <PlusCircle size={20} />
+            Importar Novo Estudo
+          </button>
+          <div className="space-y-4 flex-1">
+            {progress.memories.length > 0 ? (
+              progress.memories.slice(0, 3).map((memory, idx) => (
+                <div key={idx} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:border-emerald-200 transition-colors">
+                  <div className="flex justify-between items-start mb-2">
+                    <p className="font-bold text-slate-800 text-sm leading-tight">{memory.topic}</p>
+                    <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full uppercase tracking-tighter">Sync</span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 mb-3">{new Date(memory.date).toLocaleDateString()}</p>
+                  <div className="flex flex-wrap gap-1">
+                    {memory.extractedVocab.slice(0, 3).map(v => (
+                      <span key={v} className="bg-white text-slate-600 text-[9px] px-2 py-0.5 rounded-lg border border-slate-100 font-bold">{v}</span>
+                    ))}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center text-center opacity-40 py-10">
+                <Book className="mb-3 text-slate-300" size={40} />
+                <p className="text-xs font-bold text-slate-400 px-6 uppercase tracking-widest leading-loose">Nenhum estudo <br/> importado ainda</p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Main Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat, idx) => (
           <div key={idx} className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-between">
@@ -296,19 +369,14 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode }) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Activity Timeline */}
         <div className="lg:col-span-2 bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
                 <TrendingUp size={18} />
               </div>
-              <h3 className="text-lg font-bold text-slate-800">Learning Activity</h3>
+              <h3 className="text-lg font-bold text-slate-800">Evolução do Domínio</h3>
             </div>
-            <select className="bg-slate-50 border-none rounded-xl text-xs font-bold text-slate-500 px-3 py-1.5 focus:ring-0">
-              <option>Last 7 Days</option>
-              <option>Last 30 Days</option>
-            </select>
           </div>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -332,34 +400,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode }) => {
           </div>
         </div>
 
-        {/* Skill Radar */}
-        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col items-center">
-          <div className="w-full flex items-center gap-3 mb-8">
-            <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-              <Target size={18} />
-            </div>
-            <h3 className="text-lg font-bold text-slate-800">Skill Balance</h3>
-          </div>
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
-                <PolarGrid stroke="#f1f5f9" />
-                <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10, fill: '#64748b', fontWeight: 600 }} />
-                <PolarRadiusAxis hide />
-                <Radar name="Mastery" dataKey="A" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.3} />
-              </RadarChart>
-            </ResponsiveContainer>
-          </div>
-          <p className="mt-4 text-[11px] text-slate-400 font-medium text-center italic">
-            "Sua compreensão profissional está excelente!"
-          </p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Knowledge Heatmap (Grammar Mastery) */}
-        <div className="lg:col-span-2 bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
-          <h3 className="text-lg font-bold mb-8 text-slate-800">Mastery by Topic</h3>
+        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+          <h3 className="text-lg font-bold mb-8 text-slate-800">Gramática por Tópico</h3>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={grammarData} layout="vertical">
@@ -374,43 +416,6 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode }) => {
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Recent Memories & Imports */}
-        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col">
-          <h3 className="text-lg font-bold mb-6 text-slate-800">Estudos Externos</h3>
-          
-          <button 
-            onClick={() => setMode(AppMode.IMPORT_MEMORY)}
-            className="bg-slate-900 text-white w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/10 active:scale-95 mb-6"
-          >
-            <PlusCircle size={20} />
-            Importar Novo Estudo
-          </button>
-
-          <div className="space-y-4 flex-1">
-            {progress.memories.length > 0 ? (
-              progress.memories.slice(0, 3).map((memory, idx) => (
-                <div key={idx} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:border-emerald-200 transition-colors">
-                  <div className="flex justify-between items-start mb-2">
-                    <p className="font-bold text-slate-800 text-sm leading-tight">{memory.topic}</p>
-                    <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full uppercase tracking-tighter">Sync</span>
-                  </div>
-                  <p className="text-[10px] text-slate-400 mb-3">{new Date(memory.date).toLocaleDateString()}</p>
-                  <div className="flex flex-wrap gap-1">
-                    {memory.extractedVocab.slice(0, 3).map(v => (
-                      <span key={v} className="bg-white text-slate-600 text-[9px] px-2 py-0.5 rounded-lg border border-slate-100 font-bold">{v}</span>
-                    ))}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="flex-1 flex flex-col items-center justify-center text-center opacity-40 py-10">
-                <Book className="mb-3 text-slate-300" size={40} />
-                <p className="text-xs font-bold text-slate-400 px-6 uppercase tracking-widest leading-loose">Nenhum estudo <br/> importado ainda</p>
-              </div>
-            )}
           </div>
         </div>
       </div>

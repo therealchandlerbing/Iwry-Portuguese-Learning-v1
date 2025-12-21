@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { AppMode, Message, UserProgress, VocabItem, MemoryEntry } from './types';
+import { AppMode, Message, UserProgress, VocabItem, MemoryEntry, SessionAnalysis } from './types';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import ChatView from './components/ChatView';
@@ -14,6 +14,7 @@ import EntryScreen from './components/EntryScreen';
 import LessonsView from './components/LessonsView';
 import ReviewSessionView from './components/ReviewSessionView';
 import QuizView from './components/QuizView';
+import { analyzeSession } from './services/geminiService';
 
 const INITIAL_PROGRESS: UserProgress = {
   level: 'A2',
@@ -30,7 +31,9 @@ const INITIAL_PROGRESS: UserProgress = {
   totalPracticeMinutes: 145,
   memories: [],
   streak: 12,
-  selectedTopics: []
+  selectedTopics: [],
+  lastSessionDate: new Date(),
+  sessionCount: 24
 };
 
 const App: React.FC = () => {
@@ -64,11 +67,53 @@ const App: React.FC = () => {
   };
 
   const startLesson = (prompt: string, customMode: AppMode = AppMode.CHAT) => {
+    setMessages([]); // Clear previous chat for new focused session
     setMode(customMode);
     addMessage({
       role: 'user',
       content: prompt.startsWith('I want to') ? prompt : `Quero começar a aula: ${prompt}`
     });
+  };
+
+  const finishChatSession = async () => {
+    if (messages.length < 3) {
+      setMode(AppMode.DASHBOARD);
+      return;
+    }
+
+    const history = messages.map(m => ({ role: m.role, content: m.content }));
+    const analysis: SessionAnalysis = await analyzeSession(history);
+    
+    setProgress(prev => {
+      // 1. Update Vocabulary
+      const existingWords = new Set(prev.vocabulary.map(v => v.word.toLowerCase()));
+      const filteredNewVocab = analysis.newVocab
+        .filter(v => !existingWords.has(v.word.toLowerCase()))
+        .map(v => ({ ...v, confidence: 10, lastPracticed: new Date() }));
+      
+      const updatedVocab = [...prev.vocabulary, ...filteredNewVocab].slice(-100);
+
+      // 2. Update Grammar
+      const newGrammarMastery = { ...prev.grammarMastery };
+      Object.entries(analysis.grammarPerformance).forEach(([pattern, delta]) => {
+        if (newGrammarMastery[pattern] !== undefined) {
+          newGrammarMastery[pattern] = Math.max(0, Math.min(1, newGrammarMastery[pattern] + delta));
+        } else {
+          newGrammarMastery[pattern] = Math.max(0, Math.min(1, 0.5 + delta));
+        }
+      });
+
+      return {
+        ...prev,
+        vocabulary: updatedVocab,
+        grammarMastery: newGrammarMastery,
+        sessionCount: prev.sessionCount + 1,
+        lastSessionDate: new Date()
+      };
+    });
+
+    setMode(AppMode.DASHBOARD);
+    alert(`Session Complete! Iwry analyzed your progress:\n\n${analysis.summaryText}\n\nRecommended: ${analysis.nextStepRecommendation}`);
   };
 
   const startQuiz = (title: string, description: string) => {
@@ -109,7 +154,7 @@ const App: React.FC = () => {
     setProgress(prev => ({
       ...prev,
       memories: [newMemory, ...prev.memories],
-      vocabulary: [...prev.vocabulary, ...newVocabItems].slice(-100) // Keep latest 100
+      vocabulary: [...prev.vocabulary, ...newVocabItems].slice(-100)
     }));
 
     setMode(AppMode.DASHBOARD);
@@ -122,12 +167,12 @@ const App: React.FC = () => {
   const renderContent = () => {
     switch (mode) {
       case AppMode.DASHBOARD:
-        return <DashboardView progress={progress} setMode={setMode} />;
+        return <DashboardView progress={progress} setMode={setMode} onStartLesson={startLesson} />;
       case AppMode.CHAT:
       case AppMode.TEXT_MODE:
       case AppMode.QUICK_HELP:
       case AppMode.REVIEW_SESSION:
-        return <ChatView mode={mode} messages={messages} onAddMessage={addMessage} memories={progress.memories} selectedTopics={progress.selectedTopics} />;
+        return <ChatView mode={mode} messages={messages} onAddMessage={addMessage} memories={progress.memories} selectedTopics={progress.selectedTopics} onFinish={finishChatSession} />;
       case AppMode.LIVE_VOICE:
         return <LiveVoiceView memories={progress.memories} />;
       case AppMode.IMAGE_ANALYSIS:
@@ -137,7 +182,7 @@ const App: React.FC = () => {
       case AppMode.LESSONS:
         return <LessonsView onStartLesson={startLesson} onStartQuiz={startQuiz} selectedTopics={progress.selectedTopics} onToggleTopic={toggleTopicFocus} />;
       case AppMode.QUIZ:
-        return activeQuizTopic ? <QuizView topic={activeQuizTopic} onComplete={() => setMode(AppMode.LESSONS)} /> : <DashboardView progress={progress} setMode={setMode} />;
+        return activeQuizTopic ? <QuizView topic={activeQuizTopic} onComplete={() => setMode(AppMode.LESSONS)} /> : <DashboardView progress={progress} setMode={setMode} onStartLesson={startLesson} />;
       default:
         return <ReviewSessionView progress={progress} onStartReview={(p) => startLesson(p, AppMode.REVIEW_SESSION)} />;
     }

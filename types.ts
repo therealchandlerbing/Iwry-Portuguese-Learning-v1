@@ -27,7 +27,7 @@ export interface VocabItem {
   meaning: string;
   confidence: number; // 0 to 100
   lastPracticed: Date;
-  source?: string; // e.g., 'Internal', 'External Homework'
+  source?: string; 
 }
 
 export interface MemoryEntry {
@@ -47,7 +47,16 @@ export interface UserProgress {
   totalPracticeMinutes: number;
   memories: MemoryEntry[];
   streak: number;
-  selectedTopics: string[]; // IDs or Titles of targeted lesson submodules
+  selectedTopics: string[]; 
+  lastSessionDate: Date;
+  sessionCount: number;
+}
+
+export interface SessionAnalysis {
+  newVocab: VocabItem[];
+  grammarPerformance: Record<string, number>; // -0.1 to +0.1 adjustment
+  summaryText: string;
+  nextStepRecommendation: string;
 }
 
 export interface Correction {
@@ -75,6 +84,6 @@ export interface LessonModule {
 export interface QuizQuestion {
   question: string;
   options: string[];
-  answer: number; // index of correct option
+  answer: number; 
   explanation: string;
 }

@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { AppMode, Message } from '../types';
-import { Send, Mic, Volume2, Loader2, Square, Target, MapPin, Coffee, Utensils, ShoppingBag, Sparkles } from 'lucide-react';
+import { Send, Mic, Volume2, Loader2, Square, Target, MapPin, Coffee, Utensils, ShoppingBag, Sparkles, LogOut } from 'lucide-react';
 import { generateChatResponse, textToSpeech, transcribeAudio, decodeAudioData } from '../services/geminiService';
 
 interface ChatViewProps {
@@ -10,6 +10,7 @@ interface ChatViewProps {
   onAddMessage: (msg: Omit<Message, 'id' | 'timestamp'>) => void;
   memories?: any[];
   selectedTopics?: string[];
+  onFinish?: () => void;
 }
 
 const SCENARIO_STARTERS = [
@@ -19,7 +20,7 @@ const SCENARIO_STARTERS = [
   { id: 'shopping', label: 'Shopping', icon: <ShoppingBag size={16} />, prompt: "I want to practice shopping for clothes at a mall. You are the salesperson." },
 ];
 
-const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, memories, selectedTopics }) => {
+const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, memories, selectedTopics, onFinish }) => {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -46,7 +47,6 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, memor
 
     try {
       const chatHistory = messages.map(m => ({ role: m.role, content: m.content }));
-      // Pass selected topics to provide targeted practice context
       const response = await generateChatResponse(mode, chatHistory, text, memories, undefined, selectedTopics);
       onAddMessage({ role: 'assistant', content: response });
     } catch (err) {
@@ -115,21 +115,32 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, memor
 
   return (
     <div className="flex flex-col h-full bg-white sm:bg-slate-50">
-      {/* Target Focus Indicator */}
-      <div className="sticky top-0 z-30">
-        {selectedTopics && selectedTopics.length > 0 && (
-          <div className="bg-emerald-50 border-b border-emerald-100 px-4 py-2 flex items-center gap-3 overflow-x-auto whitespace-nowrap scrollbar-hide">
-            <div className="flex items-center gap-2 text-emerald-700 font-bold text-[10px] uppercase tracking-widest shrink-0">
-              <Target size={14} /> Focus:
-            </div>
-            <div className="flex gap-2">
-              {selectedTopics.map(topicId => (
-                <span key={topicId} className="bg-white text-emerald-600 px-2 py-0.5 rounded-full border border-emerald-200 text-[10px] font-bold">
-                  {topicId}
-                </span>
-              ))}
-            </div>
-          </div>
+      <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-100 px-4 py-2 flex items-center justify-between">
+        <div className="flex items-center gap-3 overflow-x-auto whitespace-nowrap scrollbar-hide">
+          {selectedTopics && selectedTopics.length > 0 ? (
+            <>
+              <div className="flex items-center gap-2 text-emerald-700 font-bold text-[10px] uppercase tracking-widest shrink-0">
+                <Target size={14} /> Focus:
+              </div>
+              <div className="flex gap-2">
+                {selectedTopics.map(topicId => (
+                  <span key={topicId} className="bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full border border-emerald-200 text-[10px] font-bold">
+                    {topicId}
+                  </span>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Casual Practice</div>
+          )}
+        </div>
+        {onFinish && messages.length > 1 && (
+          <button 
+            onClick={onFinish}
+            className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-emerald-600 transition-colors py-1 px-3 rounded-full hover:bg-emerald-50"
+          >
+            <LogOut size={12} /> Finish Session
+          </button>
         )}
       </div>
 
@@ -140,8 +151,8 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, memor
               <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-2">
                 <Sparkles size={24} />
               </div>
-              <h3 className="font-bold text-slate-800">Choose a Scenario</h3>
-              <p className="text-xs text-slate-500 max-w-xs mx-auto">Select a situation to jump-start your practice session with Iwry.</p>
+              <h3 className="font-bold text-slate-800">Pronto para começar?</h3>
+              <p className="text-xs text-slate-500 max-w-xs mx-auto">Escolha um cenário ou simplesmente comece a digitar.</p>
             </div>
             <div className="grid grid-cols-2 gap-3 max-w-md mx-auto">
               {SCENARIO_STARTERS.map((scenario) => (
@@ -167,7 +178,7 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, memor
                 <div className={`rounded-2xl px-4 py-2.5 sm:py-3 shadow-sm text-[15px] sm:text-base ${
                   msg.role === 'user' 
                     ? 'bg-emerald-600 text-white rounded-tr-none' 
-                    : 'bg-white sm:bg-white text-slate-800 border border-slate-100 rounded-tl-none'
+                    : 'bg-white text-slate-800 border border-slate-100 rounded-tl-none'
                 }`}>
                   <p className="whitespace-pre-wrap leading-tight sm:leading-relaxed">{msg.content}</p>
                 </div>
