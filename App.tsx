@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppMode, Message, UserProgress } from './types';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -8,6 +8,8 @@ import LiveVoiceView from './components/LiveVoiceView';
 import DashboardView from './components/DashboardView';
 import ImageAnalyzer from './components/ImageAnalyzer';
 import MobileNav from './components/MobileNav';
+import LoadingScreen from './components/LoadingScreen';
+import EntryScreen from './components/EntryScreen';
 
 const INITIAL_PROGRESS: UserProgress = {
   level: 'A2',
@@ -23,6 +25,8 @@ const INITIAL_PROGRESS: UserProgress = {
 };
 
 const App: React.FC = () => {
+  const [isAppLoading, setIsAppLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [mode, setMode] = useState<AppMode>(AppMode.CHAT);
   const [progress, setProgress] = useState<UserProgress>(INITIAL_PROGRESS);
   const [messages, setMessages] = useState<Message[]>([
@@ -33,6 +37,14 @@ const App: React.FC = () => {
       timestamp: new Date()
     }
   ]);
+
+  useEffect(() => {
+    // Simulate initial asset loading
+    const timer = setTimeout(() => {
+      setIsAppLoading(false);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const addMessage = (msg: Omit<Message, 'id' | 'timestamp'>) => {
     setMessages(prev => [...prev, {
@@ -92,8 +104,16 @@ const App: React.FC = () => {
     }
   };
 
+  if (isAppLoading) {
+    return <LoadingScreen />;
+  }
+
+  if (!isAuthenticated) {
+    return <EntryScreen onEnter={() => setIsAuthenticated(true)} />;
+  }
+
   return (
-    <div className="flex flex-col h-screen bg-slate-50 overflow-hidden text-slate-900">
+    <div className="flex flex-col h-screen bg-slate-50 overflow-hidden text-slate-900 animate-in fade-in duration-500">
       <div className="flex flex-1 overflow-hidden">
         {/* Desktop Sidebar */}
         <div className="hidden md:block">
