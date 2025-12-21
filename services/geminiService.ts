@@ -15,7 +15,7 @@ export async function checkGrammar(text: string, difficulty: DifficultyLevel): P
     config: {
       systemInstruction: SYSTEM_INSTRUCTIONS.CORRECTION_ENGINE,
       responseMimeType: "application/json",
-      thinkingConfig: { thinkingBudget: 0 }, // Disable thinking to prevent verbose reasoning
+      thinkingConfig: { thinkingBudget: 0 },
       responseSchema: {
         type: Type.OBJECT,
         properties: {
@@ -30,7 +30,6 @@ export async function checkGrammar(text: string, difficulty: DifficultyLevel): P
   });
 
   try {
-    // Clean up response text to find the actual JSON block in case of leakage
     const text = response.text || "";
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     const jsonStr = jsonMatch ? jsonMatch[0] : text;
@@ -96,7 +95,6 @@ export async function analyzeSession(history: { role: string; content: string }[
     config: {
       systemInstruction: `You are a language learning analyst for Chandler's assistant, Iwry. 
       Analyze the dialogue and extract progress data.
-      The grammarPerformance map should use keys like "Present Tense", "Future Tense", "Subjunctive", "Prepositions", or "Pronouns".
       Scores should be small adjustments: e.g., 0.05 for good usage, -0.05 for struggle.`,
       responseMimeType: "application/json",
       thinkingConfig: { thinkingBudget: 0 },
@@ -196,6 +194,10 @@ export async function generateChatResponse(
     parts: [{ text: h.content }]
   }));
   
+  const isFlashMode = mode === 'TEXT_MODE' || mode === 'QUICK_HELP';
+  const modelName = isFlashMode ? 'gemini-3-flash-preview' : 'gemini-3-pro-preview';
+  const thinkingBudget = isFlashMode ? 0 : 16000;
+
   const beginnerTranslationRule = difficulty === DifficultyLevel.BEGINNER 
     ? "\nCRITICAL: Always translate Portuguese to English in parentheses. Example: 'Tudo bem? (How are you?)'."
     : "";
@@ -210,7 +212,7 @@ export async function generateChatResponse(
     ? `\n[Focus topics: ${selectedTopics.join(', ')}]`
     : "";
 
-  const coachingContext = "\n[Role: Speak as a human friend/coach. Be natural. NO YAPPING or robot talk.]";
+  const coachingContext = "\n[Role: Act as a sophisticated AI mentor. Be insightful, concise, and structured. Avoid yapping.]";
 
   const parts: any[] = [{ text: userInput + difficultyContext + memoryContext + focusContext + coachingContext }];
   if (image) {
@@ -225,11 +227,11 @@ export async function generateChatResponse(
   contents.push({ role: 'user', parts });
 
   const response: GenerateContentResponse = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
+    model: modelName,
     contents,
     config: {
       systemInstruction: SYSTEM_INSTRUCTIONS[mode] || SYSTEM_INSTRUCTIONS.CHAT,
-      thinkingConfig: { thinkingBudget: 16000 } // Keep some thinking for quality conversation
+      thinkingConfig: { thinkingBudget }
     }
   });
 
