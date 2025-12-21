@@ -1,0 +1,8 @@
+{
+  "name": "Fala Comigo - Personal Brazilian Portuguese Companion",
+  "description": "A comprehensive AI-powered language learning companion focused on Brazilian Portuguese, featuring real-time voice practice, WhatsApp-style texting, structured lessons, and a progress dashboard.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
