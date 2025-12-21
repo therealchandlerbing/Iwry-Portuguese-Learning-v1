@@ -9,7 +9,24 @@ export enum AppMode {
   QUICK_HELP = 'QUICK_HELP',
   IMAGE_ANALYSIS = 'IMAGE_ANALYSIS',
   IMPORT_MEMORY = 'IMPORT_MEMORY',
-  QUIZ = 'QUIZ'
+  QUIZ = 'QUIZ',
+  CORRECTION_LIBRARY = 'CORRECTION_LIBRARY'
+}
+
+export enum DifficultyLevel {
+  BEGINNER = 'BEGINNER',
+  INTERMEDIATE = 'INTERMEDIATE',
+  ADVANCED = 'ADVANCED'
+}
+
+export interface CorrectionObject {
+  id: string;
+  incorrect: string;
+  corrected: string;
+  explanation: string;
+  category: string;
+  difficulty: DifficultyLevel;
+  timestamp: Date;
 }
 
 export interface Message {
@@ -20,6 +37,7 @@ export interface Message {
   audioUrl?: string;
   imageUrl?: string;
   isCorrection?: boolean;
+  correctionData?: CorrectionObject;
 }
 
 export interface VocabItem {
@@ -40,12 +58,14 @@ export interface MemoryEntry {
 }
 
 export interface UserProgress {
-  level: string;
+  level: string; // Proficiency (e.g., A2)
+  difficulty: DifficultyLevel;
   vocabulary: VocabItem[];
   lessonsCompleted: string[];
   grammarMastery: Record<string, number>;
   totalPracticeMinutes: number;
   memories: MemoryEntry[];
+  correctionHistory: CorrectionObject[];
   streak: number;
   selectedTopics: string[]; 
   lastSessionDate: Date;

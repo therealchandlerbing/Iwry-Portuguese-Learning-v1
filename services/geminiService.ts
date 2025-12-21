@@ -1,11 +1,39 @@
 
 import { GoogleGenAI, Modality, GenerateContentResponse, LiveServerMessage, Type } from "@google/genai";
 import { SYSTEM_INSTRUCTIONS } from "../constants";
-import { QuizQuestion, SessionAnalysis } from "../types";
+import { QuizQuestion, SessionAnalysis, DifficultyLevel, CorrectionObject } from "../types";
 
 export const getGeminiClient = () => {
   return new GoogleGenAI({ apiKey: process.env.API_KEY });
 };
+
+export async function checkGrammar(text: string, difficulty: DifficultyLevel): Promise<any> {
+  const ai = getGeminiClient();
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: [{ role: 'user', parts: [{ text: `User input: "${text}"\nDifficulty: ${difficulty}` }] }],
+    config: {
+      systemInstruction: SYSTEM_INSTRUCTIONS.CORRECTION_ENGINE,
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          hasError: { type: Type.BOOLEAN },
+          corrected: { type: Type.STRING },
+          explanation: { type: Type.STRING },
+          category: { type: Type.STRING }
+        },
+        required: ["hasError"]
+      }
+    }
+  });
+
+  try {
+    return JSON.parse(response.text || '{"hasError": false}');
+  } catch (e) {
+    return { hasError: false };
+  }
+}
 
 export async function analyzeMemory(content: string, isImage: boolean = false): Promise<any> {
   const ai = getGeminiClient();
@@ -123,6 +151,7 @@ export async function generateChatResponse(
   mode: string,
   history: { role: string; content: string }[],
   userInput: string,
+  difficulty: DifficultyLevel = DifficultyLevel.INTERMEDIATE,
   memories?: any[],
   image?: string,
   selectedTopics?: string[]
@@ -133,6 +162,8 @@ export async function generateChatResponse(
     parts: [{ text: h.content }]
   }));
   
+  const difficultyContext = `\nUSER CURRENT DIFFICULTY LEVEL: ${difficulty}. Adjust your vocabulary, pacing, and grammatical complexity to match this level perfectly.`;
+  
   const memoryContext = memories && memories.length > 0 
     ? `\nRECENT MEMORIES OF CHANDLER'S EXTERNAL STUDY: ${memories.slice(0,3).map(m => m.topic).join(', ')}`
     : "";
@@ -141,7 +172,7 @@ export async function generateChatResponse(
     ? `\nCURRENT TARGETED FOCUS AREAS: ${selectedTopics.join(', ')}. Try to incorporate vocabulary and scenarios related to these topics naturally.`
     : "";
 
-  const parts: any[] = [{ text: userInput + memoryContext + focusContext }];
+  const parts: any[] = [{ text: userInput + difficultyContext + memoryContext + focusContext }];
   if (image) {
     parts.push({
       inlineData: {

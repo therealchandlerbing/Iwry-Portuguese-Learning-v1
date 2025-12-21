@@ -2,13 +2,14 @@
 import React, { useState, useRef } from 'react';
 import { Camera, Upload, Loader2, Sparkles, ChevronRight } from 'lucide-react';
 import { generateChatResponse } from '../services/geminiService';
-import { AppMode, Message } from '../types';
+import { AppMode, Message, DifficultyLevel } from '../types';
 
 interface ImageAnalyzerProps {
   onAddMessage: (msg: Omit<Message, 'id' | 'timestamp'>) => void;
+  difficulty: DifficultyLevel;
 }
 
-const ImageAnalyzer: React.FC<ImageAnalyzerProps> = ({ onAddMessage }) => {
+const ImageAnalyzer: React.FC<ImageAnalyzerProps> = ({ onAddMessage, difficulty }) => {
   const [image, setImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -29,9 +30,7 @@ const ImageAnalyzer: React.FC<ImageAnalyzerProps> = ({ onAddMessage }) => {
     setLoading(true);
     try {
       const prompt = "What do you see in this image? Describe it in Brazilian Portuguese and teach me 5 new words related to this context.";
-      // Fix: Argument of type 'string' (image) was being passed to 'memories' parameter. 
-      // Corrected call to match signature: (mode, history, userInput, memories?, image?, selectedTopics?)
-      const response = await generateChatResponse(AppMode.IMAGE_ANALYSIS, [], prompt, undefined, image);
+      const response = await generateChatResponse(AppMode.IMAGE_ANALYSIS, [], prompt, difficulty, undefined, image);
       
       onAddMessage({ role: 'user', content: 'Can you analyze this photo for me?', imageUrl: image });
       onAddMessage({ role: 'assistant', content: response });

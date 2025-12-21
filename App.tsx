@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { AppMode, Message, UserProgress, VocabItem, MemoryEntry, SessionAnalysis } from './types';
+import { AppMode, Message, UserProgress, VocabItem, MemoryEntry, SessionAnalysis, DifficultyLevel, CorrectionObject } from './types';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import ChatView from './components/ChatView';
@@ -15,10 +15,12 @@ import LessonsView from './components/LessonsView';
 import ReviewSessionView from './components/ReviewSessionView';
 import QuizView from './components/QuizView';
 import SessionSummaryModal from './components/SessionSummaryModal';
-import { analyzeSession } from './services/geminiService';
+import CorrectionLibraryView from './components/CorrectionLibraryView';
+import { analyzeSession, checkGrammar } from './services/geminiService';
 
 const INITIAL_PROGRESS: UserProgress = {
   level: 'A2',
+  difficulty: DifficultyLevel.INTERMEDIATE,
   vocabulary: [
     { word: 'Saudade', meaning: 'Nostalgic longing', confidence: 85, lastPracticed: new Date() },
     { word: 'Gente', meaning: 'People/Us', confidence: 90, lastPracticed: new Date() },
@@ -31,6 +33,7 @@ const INITIAL_PROGRESS: UserProgress = {
   grammarMastery: { 'Present Tense': 0.7, 'Future Tense': 0.3, 'Subjunctive': 0.1 },
   totalPracticeMinutes: 145,
   memories: [],
+  correctionHistory: [],
   streak: 12,
   selectedTopics: [],
   lastSessionDate: new Date(),
@@ -63,6 +66,7 @@ const App: React.FC = () => {
         parsed.lastSessionDate = new Date(parsed.lastSessionDate);
         parsed.vocabulary = parsed.vocabulary.map((v: any) => ({ ...v, lastPracticed: new Date(v.lastPracticed) }));
         parsed.memories = parsed.memories.map((m: any) => ({ ...m, date: new Date(m.date) }));
+        parsed.correctionHistory = (parsed.correctionHistory || []).map((c: any) => ({ ...c, timestamp: new Date(c.timestamp) }));
         setProgress(parsed);
       } catch (e) {
         console.error("Failed to load progress", e);
@@ -88,10 +92,48 @@ const App: React.FC = () => {
     }]);
   };
 
+  const handleUserMessage = async (msg: Omit<Message, 'id' | 'timestamp'>) => {
+    addMessage(msg);
+
+    // Only check grammar for specific modes and non-assistant roles
+    if (msg.role === 'user' && (mode === AppMode.CHAT || mode === AppMode.LIVE_VOICE || mode === AppMode.TEXT_MODE)) {
+      const correctionResult = await checkGrammar(msg.content, progress.difficulty);
+      if (correctionResult.hasError) {
+        const correctionObj: CorrectionObject = {
+          id: Math.random().toString(36).substr(2, 9),
+          incorrect: msg.content,
+          corrected: correctionResult.corrected,
+          explanation: correctionResult.explanation,
+          category: correctionResult.category,
+          difficulty: progress.difficulty,
+          timestamp: new Date()
+        };
+
+        // Add to history for reusability
+        setProgress(prev => ({
+          ...prev,
+          correctionHistory: [correctionObj, ...prev.correctionHistory].slice(0, 50)
+        }));
+
+        // Notify user about correction in the message stream
+        addMessage({
+          role: 'assistant',
+          content: `💡 Dica: No seu último texto, o ideal seria: "${correctionResult.corrected}". ${correctionResult.explanation}`,
+          isCorrection: true,
+          correctionData: correctionObj
+        });
+      }
+    }
+  };
+
+  const setDifficulty = (diff: DifficultyLevel) => {
+    setProgress(prev => ({ ...prev, difficulty: diff }));
+  };
+
   const startLesson = (prompt: string, customMode: AppMode = AppMode.CHAT) => {
     setMessages([]);
     setMode(customMode);
-    addMessage({
+    handleUserMessage({
       role: 'user',
       content: prompt.startsWith('I want to') ? prompt : `Quero começar a aula: ${prompt}`
     });
@@ -193,7 +235,7 @@ const App: React.FC = () => {
     }));
 
     setMode(AppMode.DASHBOARD);
-    addMessage({
+    handleUserMessage({
       role: 'assistant',
       content: `Ótimo! Importei seu estudo sobre "${analysis.topic}". Já adicionei ${analysis.vocab.length} palavras novas ao seu vocabulário e notei que você está praticando "${analysis.grammar}". Vamos conversar sobre isso?`
     });
@@ -207,17 +249,19 @@ const App: React.FC = () => {
       case AppMode.TEXT_MODE:
       case AppMode.QUICK_HELP:
       case AppMode.REVIEW_SESSION:
-        return <ChatView mode={mode} messages={messages} onAddMessage={addMessage} memories={progress.memories} selectedTopics={progress.selectedTopics} onFinish={finishChatSession} />;
+        return <ChatView mode={mode} messages={messages} onAddMessage={handleUserMessage} difficulty={progress.difficulty} memories={progress.memories} selectedTopics={progress.selectedTopics} onFinish={finishChatSession} />;
       case AppMode.LIVE_VOICE:
-        return <LiveVoiceView memories={progress.memories} />;
+        return <LiveVoiceView memories={progress.memories} difficulty={progress.difficulty} />;
       case AppMode.IMAGE_ANALYSIS:
-        return <ImageAnalyzer onAddMessage={addMessage} />;
+        return <ImageAnalyzer onAddMessage={handleUserMessage} difficulty={progress.difficulty} />;
       case AppMode.IMPORT_MEMORY:
         return <MemoryImportView onImport={syncExternalMemory} />;
       case AppMode.LESSONS:
         return <LessonsView onStartLesson={startLesson} onStartQuiz={startQuiz} selectedTopics={progress.selectedTopics} onToggleTopic={toggleTopicFocus} />;
       case AppMode.QUIZ:
         return activeQuizTopic ? <QuizView topic={activeQuizTopic} onComplete={() => setMode(AppMode.LESSONS)} /> : <DashboardView progress={progress} setMode={setMode} onStartLesson={startLesson} />;
+      case AppMode.CORRECTION_LIBRARY:
+        return <CorrectionLibraryView history={progress.correctionHistory} onStartReview={(p) => startLesson(p, AppMode.REVIEW_SESSION)} />;
       default:
         return <ReviewSessionView progress={progress} onStartReview={(p) => startLesson(p, AppMode.REVIEW_SESSION)} />;
     }
@@ -233,7 +277,7 @@ const App: React.FC = () => {
           <Sidebar currentMode={mode} setMode={setMode} />
         </div>
         <div className="flex-1 flex flex-col min-w-0 h-full bg-slate-50">
-          <Header mode={mode} streak={progress.streak} />
+          <Header mode={mode} streak={progress.streak} difficulty={progress.difficulty} setDifficulty={setDifficulty} />
           <main className="flex-1 relative overflow-hidden">
             {renderContent()}
           </main>

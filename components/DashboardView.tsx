@@ -1,13 +1,13 @@
 
 import React, { useState, useMemo } from 'react';
-import { UserProgress, AppMode, VocabItem } from '../types';
+import { UserProgress, AppMode, VocabItem, CorrectionObject } from '../types';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
   AreaChart, Area, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis
 } from 'recharts';
 import { 
   Trophy, Zap, Book, Star, PlusCircle, MessageCircle, 
-  TrendingUp, Target, Layers, RotateCcw, Check, X, ChevronRight, Sparkles, Volume2, Loader2, Lightbulb, Activity, Globe
+  TrendingUp, Target, Layers, RotateCcw, Check, X, ChevronRight, Sparkles, Volume2, Loader2, Lightbulb, Activity, Globe, History, AlertCircle
 } from 'lucide-react';
 import { textToSpeech, decodeAudioData } from '../services/geminiService';
 
@@ -25,13 +25,45 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
   const [audioLoading, setAudioLoading] = useState(false);
 
   const studyDeck = useMemo(() => {
-    return [...progress.vocabulary]
+    // Merge vocab and recent corrections into a single deck
+    const vocab = [...progress.vocabulary]
       .sort((a, b) => a.confidence - b.confidence)
-      .slice(0, 10);
-  }, [progress.vocabulary]);
+      .slice(0, 6)
+      .map(v => ({ 
+        word: v.word, 
+        meaning: v.meaning, 
+        source: 'Vocabulário',
+        explanation: undefined as string | undefined 
+      }));
+    
+    const corrections = (progress.correctionHistory || [])
+      .slice(0, 4)
+      .map(c => ({ 
+        word: c.incorrect, 
+        meaning: c.corrected, 
+        source: 'Correção Salva', 
+        explanation: c.explanation 
+      }));
+
+    const deck = [...vocab, ...corrections].sort(() => Math.random() - 0.5);
+    return deck;
+  }, [progress.vocabulary, progress.correctionHistory]);
 
   const recommendations = useMemo(() => {
     const recs = [];
+    
+    // Correction recommendation
+    if (progress.correctionHistory && progress.correctionHistory.length > 0) {
+      const topCategory = progress.correctionHistory[0].category;
+      recs.push({
+        id: 'correction',
+        title: `Revisar: ${topCategory}`,
+        desc: `Você cometeu alguns erros em "${topCategory}". Vamos praticar isso agora?`,
+        prompt: `Quero revisar meus erros recentes em "${topCategory}". Pode me dar alguns exercícios práticos?`,
+        icon: <History className="text-orange-500" size={18} />
+      });
+    }
+
     const lowestGrammar = Object.entries(progress.grammarMastery)
       .sort((a, b) => (a[1] as number) - (b[1] as number))[0];
     
@@ -39,7 +71,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
       recs.push({
         id: 'grammar',
         title: `Drill: ${lowestGrammar[0]}`,
-        desc: `You're at ${Math.round((lowestGrammar[1] as number) * 100)}% mastery. Let's tighten this up with a roleplay.`,
+        desc: `You're at ${Math.round((lowestGrammar[1] as number) * 100)}% mastery. Let's tighten this up.`,
         prompt: `Quero praticar especificamente ${lowestGrammar[0]}. Pode me dar alguns exemplos práticos e depois fazer um roleplay?`,
         icon: <Target className="text-emerald-500" size={18} />
       });
@@ -50,19 +82,9 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
       recs.push({
         id: 'memory',
         title: `Recall: ${latest.topic}`,
-        desc: `Let's use the ${latest.extractedVocab.length} new words from your recent study in conversation.`,
+        desc: `Let's use the ${latest.extractedVocab.length} new words from your recent study.`,
         prompt: `Vamos ter uma conversa usando o vocabulário e os conceitos do meu estudo sobre "${latest.topic}".`,
         icon: <Sparkles className="text-blue-500" size={18} />
-      });
-    }
-
-    if (progress.sessionCount < 30) {
-      recs.push({
-        id: 'casual',
-        title: 'Meeting the Team',
-        desc: 'New in SP? Let\'s practice the first 5 minutes of an office interaction.',
-        prompt: 'Vamos praticar os primeiros 5 minutos de conversa quando chegamos no escritório em São Paulo.',
-        icon: <MessageCircle className="text-purple-500" size={18} />
       });
     }
 
@@ -81,7 +103,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
       { subject: 'Business', A: Math.min(100, progress.lessonsCompleted.filter(l => l.includes('Business') || l.includes('Strategic')).length * 35), fullMark: 100 },
       { subject: 'Social', A: Math.min(100, progress.lessonsCompleted.filter(l => l.includes('Social') || l.includes('Friends')).length * 35), fullMark: 100 },
       { subject: 'Vocab', A: Math.min(100, (progress.vocabulary.length / 50) * 100), fullMark: 100 },
-      { subject: 'Regional', A: Math.min(100, progress.lessonsCompleted.filter(l => l.includes('Rio') || l.includes('SP') || l.includes('Regional')).length * 35), fullMark: 100 },
+      { subject: 'Accuracy', A: Math.max(0, 100 - (progress.correctionHistory.length * 5)), fullMark: 100 },
       { subject: 'Consistency', A: Math.min(100, (progress.streak / 30) * 100), fullMark: 100 },
     ];
   }, [progress]);
@@ -90,100 +112,12 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
     { label: 'Vocabulário', value: progress.vocabulary.length, icon: <Book className="text-blue-500" size={18} />, color: 'bg-blue-50' },
     { label: 'Tempo', value: `${progress.totalPracticeMinutes}m`, icon: <Zap className="text-yellow-500" size={18} />, color: 'bg-yellow-50' },
     { label: 'Sessões', value: progress.sessionCount, icon: <MessageCircle className="text-purple-500" size={18} />, color: 'bg-purple-50' },
-    { label: 'Ofensiva', value: `${progress.streak} dias`, icon: <Trophy className="text-orange-500" size={18} />, color: 'bg-orange-50' }
+    { label: 'Erros Salvos', value: progress.correctionHistory.length, icon: <AlertCircle className="text-orange-500" size={18} />, color: 'bg-orange-50' }
   ];
 
-  if (isStudyMode) {
-    return (
-      <div className="h-full bg-slate-900 p-6 flex flex-col items-center justify-center overflow-hidden animate-in fade-in duration-500">
-        <div className="max-w-md w-full flex flex-col items-center gap-8 relative h-full justify-center">
-          {!sessionCompleted && (
-            <div className="w-full space-y-4 text-center">
-              <div className="flex items-center justify-between px-2">
-                <button onClick={() => setIsStudyMode(false)} className="text-white/40 hover:text-white transition-colors">
-                  <X size={28} />
-                </button>
-                <div className="flex flex-col">
-                  <span className="text-xs font-black text-emerald-500 tracking-[0.2em] uppercase">Sprint Diário</span>
-                  <span className="text-sm font-bold text-white/40">
-                    {currentCardIndex + 1} de {studyDeck.length}
-                  </span>
-                </div>
-                <div className="w-7 h-7" />
-              </div>
-              <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-                <div className="h-full bg-emerald-500 transition-all duration-700 shadow-[0_0_10px_rgba(16,185,129,0.5)]" style={{ width: `${((currentCardIndex + 1) / studyDeck.length) * 100}%` }} />
-              </div>
-            </div>
-          )}
-
-          {!sessionCompleted ? (
-            <div className="w-full perspective-2000">
-              <div onClick={() => setIsFlipped(!isFlipped)} className={`relative w-full aspect-[4/5] sm:aspect-[3/4] transition-all duration-700 transform-style-3d cursor-pointer ${isFlipped ? 'rotate-y-180' : ''}`}>
-                <div className="absolute inset-0 backface-hidden bg-white rounded-[3.5rem] shadow-2xl flex flex-col items-center justify-center p-12 text-center space-y-8">
-                  <div className="bg-emerald-50 p-5 rounded-[2rem] text-emerald-600 shadow-inner"><Layers size={40} /></div>
-                  <div className="relative group/word">
-                    <h3 className="text-5xl font-black text-slate-800 tracking-tighter">{studyDeck[currentCardIndex]?.word}</h3>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); playPronunciation(e, studyDeck[currentCardIndex]?.word); }} 
-                      className="absolute -right-14 top-1/2 -translate-y-1/2 p-3 bg-slate-100 text-slate-500 rounded-full shadow-lg hover:bg-emerald-600 hover:text-white transition-all active:scale-90"
-                    >
-                       {audioLoading ? <Loader2 size={22} className="animate-spin" /> : <Volume2 size={22} />}
-                    </button>
-                  </div>
-                  <div className="pt-4">
-                    <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] animate-pulse">Toque para revelar</span>
-                  </div>
-                </div>
-                <div className="absolute inset-0 backface-hidden rotate-y-180 bg-emerald-600 rounded-[3.5rem] shadow-2xl flex flex-col items-center justify-center p-12 text-center text-white space-y-8">
-                  <div className="bg-white/20 p-5 rounded-[2rem] shadow-inner"><Star size={40} /></div>
-                  <div className="space-y-2">
-                    <h3 className="text-4xl font-black tracking-tight">{studyDeck[currentCardIndex]?.meaning}</h3>
-                    <p className="text-emerald-100/60 font-medium italic text-sm">"Mandou bem, Chandler!"</p>
-                  </div>
-                  <div className="pt-4">
-                    <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">Toque para voltar</span>
-                  </div>
-                </div>
-              </div>
-              <div className={`mt-12 flex gap-4 transition-all duration-500 px-4 ${isFlipped ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'}`}>
-                <button 
-                  onClick={() => { setIsFlipped(false); setTimeout(() => currentCardIndex < studyDeck.length - 1 ? setCurrentCardIndex(c => c + 1) : setSessionCompleted(true), 300); }} 
-                  className="flex-1 bg-white/10 hover:bg-white/20 text-white py-5 rounded-3xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 transition-all border border-white/10 active:scale-95"
-                >
-                  <RotateCcw size={18} /> Esqueci
-                </button>
-                <button 
-                  onClick={() => { setIsFlipped(false); setTimeout(() => currentCardIndex < studyDeck.length - 1 ? setCurrentCardIndex(c => c + 1) : setSessionCompleted(true), 300); }} 
-                  className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-5 rounded-3xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-2xl shadow-emerald-500/30 transition-all active:scale-95"
-                >
-                  <Check size={18} /> Lembrei!
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="text-center space-y-10 animate-in zoom-in-95 duration-700 py-10">
-              <div className="relative">
-                <div className="w-40 h-40 bg-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center mx-auto shadow-inner">
-                  <Trophy size={80} />
-                </div>
-                <div className="absolute inset-0 rounded-full animate-ping border-4 border-emerald-500/10 pointer-events-none"></div>
-              </div>
-              <div className="space-y-2">
-                <h3 className="text-4xl font-black text-white tracking-tight">Sessão Completa!</h3>
-                <p className="text-slate-400 font-medium">Seu vocabulário foi reforçado com sucesso.</p>
-              </div>
-              <button onClick={() => { setIsStudyMode(false); setSessionCompleted(false); setCurrentCardIndex(0); }} className="w-full bg-white text-slate-900 py-6 rounded-[2rem] font-black uppercase tracking-[0.2em] text-sm hover:bg-emerald-500 hover:text-white transition-all shadow-2xl active:scale-95">Voltar ao Painel</button>
-            </div>
-          )}
-        </div>
-        <style>{`.perspective-2000 { perspective: 2000px; } .transform-style-3d { transform-style: preserve-3d; } .backface-hidden { backface-visibility: hidden; } .rotate-y-180 { transform: rotateY(180deg); }`}</style>
-      </div>
-    );
-  }
-
-  const playPronunciation = async (e: React.MouseEvent, word: string) => {
+  const playPronunciation = async (e: React.MouseEvent, word?: string) => {
     e.stopPropagation();
+    if (!word) return;
     setAudioLoading(true);
     try {
       const audioBytes = await textToSpeech(word);
@@ -198,6 +132,111 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
     } catch (err) { console.error(err); } finally { setAudioLoading(false); }
   };
 
+  if (isStudyMode) {
+    return (
+      <div className="h-full bg-slate-900 p-6 flex flex-col items-center justify-center overflow-hidden animate-in fade-in duration-500">
+        <div className="max-w-md w-full flex flex-col items-center gap-8 relative h-full justify-center">
+          {!sessionCompleted && (
+            <div className="w-full space-y-4 text-center">
+              <div className="flex items-center justify-between px-2">
+                <button onClick={() => setIsStudyMode(false)} className="text-white/40 hover:text-white transition-colors">
+                  <X size={28} />
+                </button>
+                <div className="flex flex-col">
+                  <span className="text-xs font-black text-emerald-500 tracking-[0.2em] uppercase">Flashcards Inteligentes</span>
+                  <span className="text-sm font-bold text-white/40">
+                    {currentCardIndex + 1} de {Math.max(1, studyDeck.length)}
+                  </span>
+                </div>
+                <div className="w-7 h-7" />
+              </div>
+              <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                <div className="h-full bg-emerald-500 transition-all duration-700 shadow-[0_0_10px_rgba(16,185,129,0.5)]" style={{ width: `${studyDeck.length > 0 ? ((currentCardIndex + 1) / studyDeck.length) * 100 : 0}%` }} />
+              </div>
+            </div>
+          )}
+
+          {!sessionCompleted ? (
+            <div className="w-full perspective-2000">
+              {studyDeck.length > 0 ? (
+                <>
+                  <div onClick={() => setIsFlipped(!isFlipped)} className={`relative w-full aspect-[4/5] sm:aspect-[3/4] transition-all duration-700 transform-style-3d cursor-pointer ${isFlipped ? 'rotate-y-180' : ''}`}>
+                    <div className="absolute inset-0 backface-hidden bg-white rounded-[3.5rem] shadow-2xl flex flex-col items-center justify-center p-12 text-center space-y-8">
+                      <div className="absolute top-8 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-slate-100 rounded-full text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        {studyDeck[currentCardIndex]?.source}
+                      </div>
+                      <div className="bg-emerald-50 p-5 rounded-[2rem] text-emerald-600 shadow-inner"><Layers size={40} /></div>
+                      <div className="relative group/word">
+                        <h3 className="text-3xl sm:text-4xl font-black text-slate-800 tracking-tighter leading-tight">{studyDeck[currentCardIndex]?.word}</h3>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); playPronunciation(e, studyDeck[currentCardIndex]?.word); }} 
+                          className="absolute -right-14 top-1/2 -translate-y-1/2 p-3 bg-slate-100 text-slate-500 rounded-full shadow-lg hover:bg-emerald-600 hover:text-white transition-all active:scale-90"
+                        >
+                           {audioLoading ? <Loader2 size={22} className="animate-spin" /> : <Volume2 size={22} />}
+                        </button>
+                      </div>
+                      <div className="pt-4">
+                        <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] animate-pulse">Toque para revelar</span>
+                      </div>
+                    </div>
+                    <div className="absolute inset-0 backface-hidden rotate-y-180 bg-emerald-600 rounded-[3.5rem] shadow-2xl flex flex-col items-center justify-center p-12 text-center text-white space-y-8 overflow-hidden">
+                      <div className="bg-white/20 p-5 rounded-[2rem] shadow-inner"><Star size={40} /></div>
+                      <div className="space-y-3">
+                        <h3 className="text-3xl font-black tracking-tight leading-tight">{studyDeck[currentCardIndex]?.meaning}</h3>
+                        {studyDeck[currentCardIndex]?.explanation && (
+                          <p className="text-emerald-100/60 font-medium italic text-xs max-w-[200px] mx-auto">
+                            "{studyDeck[currentCardIndex].explanation}"
+                          </p>
+                        )}
+                      </div>
+                      <div className="pt-4">
+                        <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">Toque para voltar</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className={`mt-12 flex gap-4 transition-all duration-500 px-4 ${isFlipped ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'}`}>
+                    <button 
+                      onClick={() => { setIsFlipped(false); setTimeout(() => currentCardIndex < studyDeck.length - 1 ? setCurrentCardIndex(c => c + 1) : setSessionCompleted(true), 300); }} 
+                      className="flex-1 bg-white/10 hover:bg-white/20 text-white py-5 rounded-3xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 transition-all border border-white/10 active:scale-95"
+                    >
+                      <RotateCcw size={18} /> Esqueci
+                    </button>
+                    <button 
+                      onClick={() => { setIsFlipped(false); setTimeout(() => currentCardIndex < studyDeck.length - 1 ? setCurrentCardIndex(c => c + 1) : setSessionCompleted(true), 300); }} 
+                      className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-5 rounded-3xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-2xl shadow-emerald-500/30 transition-all active:scale-95"
+                    >
+                      <Check size={18} /> Lembrei!
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center space-y-4">
+                   <p className="text-white font-bold">Nenhum item para revisar no momento!</p>
+                   <button onClick={() => setIsStudyMode(false)} className="text-emerald-500 underline uppercase text-xs font-black tracking-widest">Voltar ao Painel</button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center space-y-10 animate-in zoom-in-95 duration-700 py-10">
+              <div className="relative">
+                <div className="w-40 h-40 bg-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                  <Trophy size={80} />
+                </div>
+                <div className="absolute inset-0 rounded-full animate-ping border-4 border-emerald-500/10 pointer-events-none"></div>
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-4xl font-black text-white tracking-tight">Sessão Completa!</h3>
+                <p className="text-slate-400 font-medium">Seu vocabulário e correções foram reforçados.</p>
+              </div>
+              <button onClick={() => { setIsStudyMode(false); setSessionCompleted(false); setCurrentCardIndex(0); }} className="w-full bg-white text-slate-900 py-6 rounded-[2rem] font-black uppercase tracking-[0.2em] text-sm hover:bg-emerald-500 hover:text-white transition-all shadow-2xl active:scale-95">Voltar ao Painel</button>
+            </div>
+          )}
+        </div>
+        <style>{`.perspective-2000 { perspective: 2000px; } .transform-style-3d { transform-style: preserve-3d; } .backface-hidden { backface-visibility: hidden; } .rotate-y-180 { transform: rotateY(180deg); }`}</style>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 sm:p-8 space-y-10 overflow-y-auto h-full bg-slate-50 pb-32 animate-in fade-in duration-700">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
@@ -206,7 +245,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
             <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">Fala, Chandler!</h1>
             <span className="text-3xl animate-bounce">🇧🇷</span>
           </div>
-          <p className="text-slate-500 font-bold tracking-tight">Pronto para subir de nível no Português hoje?</p>
+          <p className="text-slate-500 font-bold tracking-tight">Difficulty: <span className="text-emerald-600 uppercase">{progress.difficulty}</span></p>
         </div>
         <div className="flex items-center gap-4">
            <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-2xl border border-slate-200 shadow-sm transition-all hover:shadow-md group">
@@ -249,7 +288,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
         <div className="lg:col-span-2 bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100 flex flex-col">
           <div className="flex items-center gap-3 mb-8">
             <div className="p-2.5 bg-purple-100 text-purple-600 rounded-2xl shadow-sm"><Lightbulb size={24} /></div>
-            <h3 className="text-xl font-black text-slate-800 tracking-tight">Recomendações para você</h3>
+            <h3 className="text-xl font-black text-slate-800 tracking-tight">Recomendações Inteligentes</h3>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 flex-1">
             {recommendations.map(rec => (
@@ -276,8 +315,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
                  <div className="p-4 bg-white rounded-[2rem] shadow-sm mb-4 group-hover:scale-110 transition-transform">
                    <Layers className="text-orange-500" size={40} />
                  </div>
-                 <h4 className="font-black text-slate-800 text-lg mb-1">Vocabulário Rápido</h4>
-                 <p className="text-[10px] font-black text-orange-600 uppercase tracking-[0.3em]">Flashcards: 10 Palavras</p>
+                 <h4 className="font-black text-slate-800 text-lg mb-1">Review Inteligente</h4>
+                 <p className="text-[10px] font-black text-orange-600 uppercase tracking-[0.3em]">Inclui Correções Recentes</p>
                </div>
             </div>
           </div>
@@ -305,7 +344,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
               </div>
               <h3 className="text-3xl font-black italic tracking-tight">"O jeitinho brasileiro"</h3>
               <p className="text-emerald-100/70 text-[15px] leading-relaxed font-medium">
-                Não é apenas sobre burlar regras, mas sobre criatividade e calor humano na resolução de problemas. No mundo dos negócios em SP, é a ponte que constrói confiança antes de qualquer contrato.
+                Adaptamos o contexto para seu nível <span className="text-emerald-400 font-black">{progress.difficulty}</span>. Vamos bater um papo?
               </p>
               <div className="pt-4">
                  <button 
@@ -343,7 +382,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
 
         <div className="bg-white p-10 rounded-[3rem] shadow-sm border border-slate-100 flex flex-col">
            <div className="flex items-center justify-between mb-8">
-            <h3 className="text-lg font-black text-slate-800 uppercase tracking-tighter">Foco Gramatical</h3>
+            <h3 className="text-lg font-black text-slate-800 uppercase tracking-tighter">Domínio Gramatical</h3>
             <div className="p-2.5 bg-orange-50 text-orange-600 rounded-xl shadow-sm"><Target size={20} /></div>
           </div>
           <div className="space-y-8 flex-1">
@@ -366,9 +405,6 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
                 </div>
               );
             })}
-          </div>
-          <div className="mt-8 p-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-center">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">O Iwry está monitorando seu progresso em tempo real.</p>
           </div>
         </div>
       </div>

@@ -12,7 +12,8 @@ import {
   RefreshCw,
   ChevronRight,
   TrendingUp,
-  Target
+  Target,
+  History
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -36,6 +37,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentMode, setMode }) => {
         { mode: AppMode.IMAGE_ANALYSIS, label: 'Photo Analysis', icon: <Camera size={18} /> },
         { mode: AppMode.LESSONS, label: 'Structured Lessons', icon: <BookOpen size={18} /> },
         { mode: AppMode.REVIEW_SESSION, label: 'Review Center', icon: <RefreshCw size={18} /> },
+        { mode: AppMode.CORRECTION_LIBRARY, label: 'Corrections', icon: <History size={18} /> },
       ]
     },
     {

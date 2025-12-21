@@ -1,12 +1,11 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { AppMode, Message } from '../types';
+import { AppMode, Message, DifficultyLevel } from '../types';
 import { 
   Send, 
   Mic, 
   Volume2, 
   Loader2, 
-  Square, 
   Target, 
   MapPin, 
   Coffee, 
@@ -21,7 +20,8 @@ import {
   Users,
   Beer,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Info
 } from 'lucide-react';
 import { generateChatResponse, textToSpeech, transcribeAudio, decodeAudioData } from '../services/geminiService';
 
@@ -29,6 +29,7 @@ interface ChatViewProps {
   mode: AppMode;
   messages: Message[];
   onAddMessage: (msg: Omit<Message, 'id' | 'timestamp'>) => void;
+  difficulty: DifficultyLevel;
   memories?: any[];
   selectedTopics?: string[];
   onFinish?: () => void;
@@ -45,7 +46,7 @@ const SCENARIO_STARTERS = [
   { id: 'bar', label: 'Happy Hour', icon: <Beer size={16} />, prompt: "Quero praticar pedir petiscos e drinks em um barzinho de happy hour em Pinheiros. Você é o garçom." },
 ];
 
-const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, memories, selectedTopics, onFinish }) => {
+const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, difficulty, memories, selectedTopics, onFinish }) => {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -79,7 +80,7 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, memor
 
     try {
       const chatHistory = messages.map(m => ({ role: m.role, content: m.content }));
-      const response = await generateChatResponse(mode, chatHistory, text, memories, currentImage || undefined, selectedTopics);
+      const response = await generateChatResponse(mode, chatHistory, text, difficulty, memories, currentImage || undefined, selectedTopics);
       onAddMessage({ role: 'assistant', content: response });
     } catch (err) {
       console.error(err);
@@ -173,22 +174,16 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, memor
       {/* Header Overlay */}
       <div className="absolute top-0 left-0 right-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200/60 px-4 py-2 flex items-center justify-between">
         <div className="flex items-center gap-3 overflow-x-auto whitespace-nowrap no-scrollbar pr-4">
-          {selectedTopics && selectedTopics.length > 0 ? (
-            <>
-              <div className="flex items-center gap-2 text-emerald-700 font-bold text-[10px] uppercase tracking-widest shrink-0">
-                <Target size={14} /> Focus:
-              </div>
-              <div className="flex gap-2">
-                {selectedTopics.map(topicId => (
-                  <span key={topicId} className="bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-lg border border-emerald-200 text-[10px] font-black uppercase tracking-tight">
-                    {topicId}
-                  </span>
-                ))}
-              </div>
-            </>
-          ) : (
-            <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-              <Sparkles size={12} className="text-emerald-500" /> Conversação Livre
+          <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 font-bold text-[10px] uppercase tracking-widest shrink-0 px-2 py-1 rounded-lg">
+             {difficulty} Level
+          </div>
+          {selectedTopics && selectedTopics.length > 0 && (
+            <div className="flex gap-2">
+              {selectedTopics.map(topicId => (
+                <span key={topicId} className="bg-slate-100 text-slate-500 px-2.5 py-1 rounded-lg border border-slate-200 text-[10px] font-black uppercase tracking-tight">
+                  {topicId}
+                </span>
+              ))}
             </div>
           )}
         </div>
@@ -211,7 +206,7 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, memor
               </div>
               <h3 className="text-xl font-black text-slate-800 tracking-tight">Fala comigo, Chandler!</h3>
               <p className="text-sm text-slate-500 max-w-xs mx-auto leading-relaxed">
-                Escolha um cenário profissional ou casual para praticar seu Português hoje.
+                Você está no nível <span className="text-emerald-600 font-bold">{difficulty}</span>. Vamos praticar?
               </p>
             </div>
             <div className="max-w-md mx-auto space-y-4">
@@ -243,44 +238,61 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, memor
           </div>
         )}
 
-        {messages.map((msg, idx) => (
-          <div 
-            key={msg.id} 
-            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}
-            style={{ animationDelay: `${idx * 50}ms` }}
-          >
-            <div className={`max-w-[90%] sm:max-w-[75%] group ${msg.role === 'user' ? 'order-2' : ''}`}>
-              <div className={`flex items-end gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                <div className={`rounded-3xl px-5 py-3.5 shadow-sm text-[15px] sm:text-base space-y-2 relative ${
-                  msg.role === 'user' 
-                    ? 'bg-emerald-600 text-white rounded-br-none' 
-                    : 'bg-white text-slate-800 border border-slate-100 rounded-bl-none'
-                }`}>
-                  {msg.imageUrl && (
-                    <div className="rounded-2xl overflow-hidden mb-2 shadow-inner">
-                      <img src={msg.imageUrl} alt="User upload" className="max-w-full h-auto" />
-                    </div>
+        {messages.map((msg, idx) => {
+          const isCorrection = msg.isCorrection;
+          return (
+            <div 
+              key={msg.id} 
+              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}
+              style={{ animationDelay: `${idx * 50}ms` }}
+            >
+              <div className={`max-w-[90%] sm:max-w-[75%] group ${msg.role === 'user' ? 'order-2' : ''}`}>
+                <div className={`flex items-end gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                  <div className={`rounded-3xl px-5 py-3.5 shadow-sm text-[15px] sm:text-base space-y-2 relative ${
+                    isCorrection 
+                      ? 'bg-amber-50 border border-amber-200 text-amber-900 rounded-bl-none'
+                      : msg.role === 'user' 
+                        ? 'bg-emerald-600 text-white rounded-br-none' 
+                        : 'bg-white text-slate-800 border border-slate-100 rounded-bl-none'
+                  }`}>
+                    {isCorrection && (
+                      <div className="flex items-center gap-2 mb-2 text-amber-600 font-black text-[10px] uppercase tracking-[0.2em]">
+                        <Info size={14} /> Correção Modular
+                      </div>
+                    )}
+                    {msg.imageUrl && (
+                      <div className="rounded-2xl overflow-hidden mb-2 shadow-inner">
+                        <img src={msg.imageUrl} alt="User upload" className="max-w-full h-auto" />
+                      </div>
+                    )}
+                    <p className={`whitespace-pre-wrap leading-relaxed ${isCorrection ? 'font-bold' : 'font-medium'}`}>{msg.content}</p>
+                    
+                    {msg.correctionData && (
+                      <div className="mt-4 pt-4 border-t border-amber-200/50 space-y-2">
+                        <p className="text-[10px] uppercase tracking-widest text-amber-500 font-black">Categoria: {msg.correctionData.category}</p>
+                        <p className="text-xs text-amber-800 opacity-80 leading-relaxed italic">Salvo na sua Biblioteca de Correções para revisão futura.</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {msg.role === 'assistant' && (
+                    <button 
+                      onClick={() => playAudio(msg.content, msg.id)}
+                      className={`p-3 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-full transition-all active:scale-90 ${audioLoading === msg.id ? 'bg-emerald-50' : ''}`}
+                      disabled={!!audioLoading}
+                      aria-label="Escutar áudio"
+                    >
+                      {audioLoading === msg.id ? <Loader2 size={18} className="animate-spin text-emerald-500" /> : <Volume2 size={18} />}
+                    </button>
                   )}
-                  <p className="whitespace-pre-wrap leading-relaxed font-medium">{msg.content}</p>
                 </div>
-                
-                {msg.role === 'assistant' && (
-                  <button 
-                    onClick={() => playAudio(msg.content, msg.id)}
-                    className={`p-3 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-full transition-all active:scale-90 ${audioLoading === msg.id ? 'bg-emerald-50' : ''}`}
-                    disabled={!!audioLoading}
-                    aria-label="Escutar áudio"
-                  >
-                    {audioLoading === msg.id ? <Loader2 size={18} className="animate-spin text-emerald-500" /> : <Volume2 size={18} />}
-                  </button>
-                )}
+                <p className={`text-[10px] mt-1.5 px-2 text-slate-400 font-bold uppercase tracking-widest ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
+                  {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </p>
               </div>
-              <p className={`text-[10px] mt-1.5 px-2 text-slate-400 font-bold uppercase tracking-widest ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
-                {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </p>
             </div>
-          </div>
-        ))}
+          );
+        })}
         {loading && (
           <div className="flex justify-start animate-in fade-in duration-300">
             <div className="bg-white/50 backdrop-blur border border-slate-200/50 rounded-3xl rounded-bl-none px-5 py-3 shadow-sm flex items-center gap-3">

@@ -18,9 +18,9 @@ Context Awareness: You have access to Chandler's "External Memories" (homework/n
 `;
 
 export const SYSTEM_INSTRUCTIONS: Record<string, string> = {
-  CHAT: `${IWRY_PERSONALITY} Mode: Conversation Practice. Engage in natural conversation. Offer 2-3 specific improvements at the end.`,
-  TEXT_MODE: `${IWRY_PERSONALITY} Mode: WhatsApp/Texting. Use common abbreviations (vc, tb, pq, blz). Use authentic Brazilian emojis and slang.`,
-  LESSONS: `${IWRY_PERSONALITY} Mode: Structured Learning. Focus on practical communication challenges.`,
+  CHAT: `${IWRY_PERSONALITY} Mode: Conversation Practice. Engage in natural conversation. Target the user's SELECTED DIFFICULTY LEVEL in your vocabulary choice and sentence complexity. Offer 2-3 specific improvements at the end.`,
+  TEXT_MODE: `${IWRY_PERSONALITY} Mode: WhatsApp/Texting. Use common abbreviations (vc, tb, pq, blz). Use authentic Brazilian emojis and slang. Adapt slang complexity to the difficulty level.`,
+  LESSONS: `${IWRY_PERSONALITY} Mode: Structured Learning. Focus on practical communication challenges. Use appropriate pacing based on difficulty level.`,
   REVIEW_SESSION: `${IWRY_PERSONALITY} Mode: Review Session. You are focusing on Chandler's weak points. Prioritize using the specific words and grammar patterns he is struggling with. Be supportive and push him to use difficult constructions.`,
   QUICK_HELP: `${IWRY_PERSONALITY} Mode: Translation & Context. Provide pronunciation guides and 2-3 example sentences.`,
   IMAGE_ANALYSIS: `${IWRY_PERSONALITY} Mode: Visual Learning. Describe images and provide relevant vocabulary.`,
@@ -42,5 +42,14 @@ export const SYSTEM_INSTRUCTIONS: Record<string, string> = {
         "explanation": "brief explanation in English/Portuguese mix"
       }
     ]
-  }`
+  }`,
+  CORRECTION_ENGINE: `You are a Brazilian Portuguese grammar and style corrector.
+  Analyze the user's input for grammatical errors, spelling, or unnatural phrasing.
+  Consider the user's CURRENT DIFFICULTY LEVEL (Beginner, Intermediate, Advanced).
+  If there is an error:
+  1. Provide the corrected version.
+  2. Provide a brief, supportive explanation in English (clearer for Beginners, more technical for Advanced).
+  3. Identify the grammar category (e.g., Verb Conjugation, Prepositions, Gender Agreement).
+  Return JSON: { "hasError": boolean, "corrected": string, "explanation": string, "category": string }
+  If there is no significant error, return { "hasError": false }.`
 };

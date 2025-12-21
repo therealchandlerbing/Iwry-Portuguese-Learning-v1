@@ -3,13 +3,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Modality, LiveServerMessage } from '@google/genai';
 import { Mic, MicOff, Volume2, Info, AlertCircle, Loader2, Sparkles } from 'lucide-react';
 import { decode, encode, decodeAudioData } from '../services/geminiService';
-import { MemoryEntry } from '../types';
+import { MemoryEntry, DifficultyLevel } from '../types';
 
 interface LiveVoiceViewProps {
   memories?: MemoryEntry[];
+  difficulty: DifficultyLevel;
 }
 
-const LiveVoiceView: React.FC<LiveVoiceViewProps> = ({ memories }) => {
+const LiveVoiceView: React.FC<LiveVoiceViewProps> = ({ memories, difficulty }) => {
   const [isActive, setIsActive] = useState(false);
   const [status, setStatus] = useState<'idle' | 'connecting' | 'listening' | 'speaking'>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -107,7 +108,11 @@ const LiveVoiceView: React.FC<LiveVoiceViewProps> = ({ memories }) => {
           speechConfig: {
             voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } }
           },
-          systemInstruction: `Você é o Iwry, o assistente dedicado de Chandler para aprender Português do Brasil. Fale naturalmente em português. Seja encorajador. ${memories && memories.length > 0 ? `Contexto: Chandler estudou recentemente sobre: ${memories.slice(0, 3).map(m => m.topic).join(', ')}.` : ''} Mantenha a conversa fluida e divertida.`
+          systemInstruction: `Você é o Iwry, o assistente dedicado de Chandler para aprender Português do Brasil. 
+          O nível de dificuldade atual de Chandler é ${difficulty}. Ajuste sua complexidade de vocabulário e gramática para este nível. 
+          Fale naturalmente em português. Seja encorajador. 
+          ${memories && memories.length > 0 ? `Contexto: Chandler estudou recentemente sobre: ${memories.slice(0, 3).map(m => m.topic).join(', ')}.` : ''} 
+          Mantenha a conversa fluida e divertida.`
         }
       });
 
@@ -176,7 +181,7 @@ const LiveVoiceView: React.FC<LiveVoiceViewProps> = ({ memories }) => {
         <div className="space-y-4 px-4">
           <div className="flex items-center justify-center gap-2 mb-2">
             <Sparkles size={16} className="text-emerald-500" />
-            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-500/80">Experiência em Tempo Real</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-500/80">{difficulty} Difficulty</span>
           </div>
           <h3 className="text-3xl sm:text-4xl font-black tracking-tight">
             {status === 'connecting' ? "Iniciando..." :
@@ -212,20 +217,6 @@ const LiveVoiceView: React.FC<LiveVoiceViewProps> = ({ memories }) => {
             {status === 'connecting' ? 'Conectando' : (isActive ? 'Encerrar' : 'Entrar no Chat')}
           </button>
         </div>
-
-        {!isActive && (
-          <div className="mx-4 bg-white/5 p-6 rounded-[2.5rem] text-left border border-white/10 backdrop-blur-md flex items-start gap-4">
-            <div className="bg-white/10 p-3 rounded-2xl">
-              <Info size={20} className="text-emerald-400" />
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs font-black uppercase tracking-widest text-emerald-500/80">Como funciona?</p>
-              <p className="text-xs sm:text-sm text-white/50 leading-relaxed font-medium">
-                O Iwry usa tecnologia de baixa latência. Sinta-se à vontade para interromper, pensar alto e falar no seu ritmo.
-              </p>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
