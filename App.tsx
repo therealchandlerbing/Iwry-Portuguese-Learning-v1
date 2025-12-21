@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { AppMode, Message, UserProgress } from './types';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -7,7 +7,7 @@ import ChatView from './components/ChatView';
 import LiveVoiceView from './components/LiveVoiceView';
 import DashboardView from './components/DashboardView';
 import ImageAnalyzer from './components/ImageAnalyzer';
-import { COLORS } from './constants';
+import MobileNav from './components/MobileNav';
 
 const INITIAL_PROGRESS: UserProgress = {
   level: 'A2',
@@ -48,7 +48,6 @@ const App: React.FC = () => {
       role: 'user', 
       content: `I'd like a lesson about ${topic}.` 
     });
-    // The Gemini system instruction handles the context from here.
   };
 
   const renderContent = () => {
@@ -65,10 +64,10 @@ const App: React.FC = () => {
         return <ImageAnalyzer onAddMessage={addMessage} />;
       case AppMode.LESSONS:
         return (
-          <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-slate-50 overflow-y-auto">
-            <h2 className="text-3xl font-bold mb-3 text-slate-800">Structured Lessons</h2>
-            <p className="text-slate-500 mb-10 max-w-md">Pick a professional or cultural context to focus on today, Chandler.</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-3xl">
+          <div className="flex flex-col items-center justify-start sm:justify-center h-full p-6 sm:p-8 text-center bg-slate-50 overflow-y-auto pb-32 sm:pb-8">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-3 text-slate-800">Structured Lessons</h2>
+            <p className="text-slate-500 mb-8 sm:mb-10 max-w-md">Pick a professional or cultural context to focus on today, Chandler.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 w-full max-w-3xl">
               {[
                 { title: 'Business Meetings', desc: 'Phrases for professional negotiation and innovation consulting.', icon: '💼' },
                 { title: 'SP/Rio Slang', desc: 'Casual communication and WhatsApp abbreviations like "kkk" and "tmj".', icon: '🇧🇷' },
@@ -78,7 +77,7 @@ const App: React.FC = () => {
                 <button 
                   key={topic.title}
                   onClick={() => startLessonTopic(topic.title)}
-                  className="p-6 bg-white border border-slate-100 rounded-2xl hover:border-emerald-500 hover:shadow-xl hover:shadow-emerald-500/5 transition-all text-left group"
+                  className="p-5 sm:p-6 bg-white border border-slate-100 rounded-2xl hover:border-emerald-500 hover:shadow-xl hover:shadow-emerald-500/5 transition-all text-left group"
                 >
                   <div className="text-3xl mb-3">{topic.icon}</div>
                   <div className="font-bold text-slate-800 group-hover:text-emerald-600 mb-1">{topic.title}</div>
@@ -94,16 +93,24 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden text-slate-900">
-      <Sidebar currentMode={mode} setMode={setMode} />
-      
-      <div className="flex-1 flex flex-col min-w-0">
-        <Header mode={mode} />
+    <div className="flex flex-col h-screen bg-slate-50 overflow-hidden text-slate-900">
+      <div className="flex flex-1 overflow-hidden">
+        {/* Desktop Sidebar */}
+        <div className="hidden md:block">
+          <Sidebar currentMode={mode} setMode={setMode} />
+        </div>
         
-        <main className="flex-1 relative overflow-hidden">
-          {renderContent()}
-        </main>
+        <div className="flex-1 flex flex-col min-w-0 h-full">
+          <Header mode={mode} />
+          
+          <main className="flex-1 relative overflow-hidden">
+            {renderContent()}
+          </main>
+        </div>
       </div>
+
+      {/* Mobile Bottom Navigation */}
+      <MobileNav currentMode={mode} setMode={setMode} />
     </div>
   );
 };
