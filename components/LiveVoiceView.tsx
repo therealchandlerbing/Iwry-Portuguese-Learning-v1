@@ -1,11 +1,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Modality, LiveServerMessage } from '@google/genai';
-import { Mic, MicOff, Volume2, Info, AlertCircle } from 'lucide-react';
+import { Mic, MicOff, Volume2, Info, AlertCircle, Loader2, Sparkles } from 'lucide-react';
 import { decode, encode, decodeAudioData } from '../services/geminiService';
 import { MemoryEntry } from '../types';
 
-// Add memories to props interface to fix assignment error in App.tsx
 interface LiveVoiceViewProps {
   memories?: MemoryEntry[];
 }
@@ -26,7 +25,6 @@ const LiveVoiceView: React.FC<LiveVoiceViewProps> = ({ memories }) => {
     setError(null);
 
     try {
-      // Use process.env.API_KEY as per guidelines
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       
       inputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
@@ -95,8 +93,9 @@ const LiveVoiceView: React.FC<LiveVoiceViewProps> = ({ memories }) => {
           },
           onerror: (e) => {
             console.error('Live API Error:', e);
-            setError("Erro de conexão. Verifique as permissões do microfone.");
+            setError("Houve um erro na conexão. Tente novamente.");
             setIsActive(false);
+            setStatus('idle');
           },
           onclose: (e) => {
             setIsActive(false);
@@ -108,14 +107,13 @@ const LiveVoiceView: React.FC<LiveVoiceViewProps> = ({ memories }) => {
           speechConfig: {
             voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } }
           },
-          // Reference the memories in system instruction to make Iwry context-aware
-          systemInstruction: `You are Iwry, a dedicated Brazilian Portuguese learning assistant for Chandler. Talk naturally in Portuguese. Be helpful and encouraging. ${memories && memories.length > 0 ? `Context: you are aware Chandler recently studied topics like: ${memories.slice(0, 5).map(m => m.topic).join(', ')}.` : ''}`
+          systemInstruction: `Você é o Iwry, o assistente dedicado de Chandler para aprender Português do Brasil. Fale naturalmente em português. Seja encorajador. ${memories && memories.length > 0 ? `Contexto: Chandler estudou recentemente sobre: ${memories.slice(0, 3).map(m => m.topic).join(', ')}.` : ''} Mantenha a conversa fluida e divertida.`
         }
       });
 
       sessionRef.current = await sessionPromise;
     } catch (err) {
-      setError("Não foi possível acessar o microfone.");
+      setError("Não foi possível acessar seu microfone. Verifique as permissões.");
       setStatus('idle');
     }
   };
@@ -129,77 +127,105 @@ const LiveVoiceView: React.FC<LiveVoiceViewProps> = ({ memories }) => {
     setStatus('idle');
   };
 
+  useEffect(() => {
+    return () => {
+      if (sessionRef.current) sessionRef.current.close();
+    };
+  }, []);
+
   return (
-    <div className="flex flex-col items-center justify-start sm:justify-center h-full p-6 sm:p-8 bg-slate-900 text-white overflow-y-auto pb-24">
-      <div className="max-w-md w-full text-center space-y-10 py-8">
-        <div className="relative pt-4">
-          <div className={`w-40 h-40 sm:w-56 sm:h-56 mx-auto rounded-full flex items-center justify-center border-4 transition-all duration-700 ${
-            isActive ? 'border-emerald-500 scale-105 sm:scale-110 shadow-[0_0_60px_rgba(16,185,129,0.25)]' : 'border-slate-800'
+    <div className="flex flex-col items-center justify-center h-full p-6 sm:p-12 bg-slate-900 text-white overflow-hidden relative">
+      {/* Background Ambience */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-emerald-500/5 rounded-full blur-[120px] transition-all duration-1000 ${isActive ? 'scale-110 opacity-100' : 'scale-75 opacity-0'}`} />
+      </div>
+
+      <div className="max-w-md w-full text-center space-y-12 relative z-10 flex flex-col items-center">
+        <div className="relative group">
+          <div className={`w-48 h-48 sm:w-64 sm:h-64 rounded-[4rem] flex items-center justify-center border-4 transition-all duration-700 relative ${
+            isActive ? 'border-emerald-500 scale-105 shadow-[0_0_80px_rgba(16,185,129,0.2)]' : 'border-white/10'
           }`}>
-            <div className={`w-32 h-32 sm:w-48 sm:h-48 rounded-full flex items-center justify-center transition-all ${
-              isActive ? 'bg-emerald-500/10' : 'bg-slate-800'
+            <div className={`w-36 h-36 sm:w-52 sm:h-52 rounded-[3.5rem] flex items-center justify-center transition-all duration-500 ${
+              isActive ? 'bg-emerald-500/20' : 'bg-white/5'
             }`}>
               {status === 'speaking' ? (
-                <div className="flex gap-2 items-center h-16">
-                   {[1,2,3,4,5,6].map(i => (
-                     <div key={i} className="w-2.5 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.1}s`, height: `${50 + Math.random() * 50}%` }} />
+                <div className="flex gap-2 items-center h-20">
+                   {[1,2,3,4,5].map(i => (
+                     <div 
+                      key={i} 
+                      className="w-3 bg-emerald-500 rounded-full animate-bounce shadow-[0_0_15px_rgba(16,185,129,0.5)]" 
+                      style={{ animationDelay: `${i * 0.1}s`, height: `${40 + Math.random() * 60}%` }} 
+                     />
                    ))}
                 </div>
               ) : (
-                <Mic size={isActive ? 64 : 56} className={isActive ? 'text-emerald-500' : 'text-slate-600'} />
+                <div className="relative">
+                  <Mic size={isActive ? 80 : 64} className={`transition-all duration-500 ${isActive ? 'text-emerald-500 scale-110' : 'text-white/20'}`} />
+                  {isActive && status === 'listening' && (
+                    <div className="absolute inset-0 animate-ping rounded-full border-4 border-emerald-500/20" />
+                  )}
+                </div>
               )}
             </div>
           </div>
           {isActive && (
-             <div className="absolute inset-0 rounded-full animate-ping border-2 border-emerald-500/10 pointer-events-none"></div>
+             <div className="absolute -inset-8 rounded-[5rem] border-2 border-emerald-500/5 animate-pulse" />
           )}
         </div>
 
-        <div className="space-y-3 px-4">
-          <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-            {isActive ? "Iwry está ouvindo..." : "Pronto para falar?"}
+        <div className="space-y-4 px-4">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <Sparkles size={16} className="text-emerald-500" />
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-500/80">Experiência em Tempo Real</span>
+          </div>
+          <h3 className="text-3xl sm:text-4xl font-black tracking-tight">
+            {status === 'connecting' ? "Iniciando..." :
+             status === 'speaking' ? "Iwry falando" :
+             status === 'listening' ? "Iwry ouvindo..." : "Voz com Iwry"}
           </h3>
-          <p className="text-slate-400 text-[15px] sm:text-base leading-relaxed">
-            {status === 'connecting' ? 'Conectando ao Iwry...' : 
-             status === 'speaking' ? 'Iwry está falando.' :
-             isActive ? 'Pode falar em Português, estou ouvindo.' : 
-             'Pratique conversação em tempo real sem precisar apertar botões.'}
+          <p className="text-white/40 text-sm sm:text-base leading-relaxed max-w-xs mx-auto font-medium">
+            {status === 'connecting' ? 'Preparando a conexão segura...' : 
+             status === 'speaking' ? 'Aguarde o Iwry terminar de falar.' :
+             isActive ? 'Fale naturalmente, como em uma ligação real.' : 
+             'Pratique conversação fluida sem interrupções e sem botões.'}
           </p>
         </div>
 
         {error && (
-          <div className="mx-4 bg-red-900/30 border border-red-500/30 p-4 rounded-2xl flex items-center gap-3 text-red-200 text-sm text-left">
-            <AlertCircle size={20} className="shrink-0 text-red-500" />
-            {error}
+          <div className="mx-4 bg-red-500/10 border border-red-500/20 p-5 rounded-3xl flex items-center gap-4 text-red-200 text-sm text-left animate-in slide-in-from-bottom-2">
+            <AlertCircle size={24} className="shrink-0 text-red-500" />
+            <p className="font-medium leading-snug">{error}</p>
           </div>
         )}
 
-        <div className="px-4">
+        <div className="w-full px-4 pt-4">
           <button
             onClick={isActive ? stopSession : startSession}
             disabled={status === 'connecting'}
-            className={`w-full py-5 px-8 rounded-[2rem] font-bold text-xl transition-all flex items-center justify-center gap-3 shadow-2xl active:scale-[0.96] ${
+            className={`w-full py-6 px-10 rounded-[2.5rem] font-black text-lg transition-all flex items-center justify-center gap-4 shadow-2xl active:scale-[0.96] uppercase tracking-[0.1em] ${
               isActive 
-                ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/20' 
-                : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20'
+                ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/20 ring-4 ring-red-500/10' 
+                : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20 ring-4 ring-emerald-500/10'
             } disabled:opacity-50`}
           >
-            {isActive ? <MicOff size={26} /> : <Mic size={26} />}
-            {isActive ? 'Encerrar Chat' : 'Iniciar Sessão'}
+            {status === 'connecting' ? <Loader2 size={24} className="animate-spin" /> : (isActive ? <MicOff size={24} /> : <Mic size={24} />)}
+            {status === 'connecting' ? 'Conectando' : (isActive ? 'Encerrar' : 'Entrar no Chat')}
           </button>
         </div>
 
-        <div className="mx-4 bg-white/5 p-5 rounded-3xl text-left border border-white/5 backdrop-blur-sm">
-          <div className="flex items-start gap-4">
-            <div className="bg-white/10 p-2.5 rounded-xl">
-              <Info size={20} className="text-slate-300" />
+        {!isActive && (
+          <div className="mx-4 bg-white/5 p-6 rounded-[2.5rem] text-left border border-white/10 backdrop-blur-md flex items-start gap-4">
+            <div className="bg-white/10 p-3 rounded-2xl">
+              <Info size={20} className="text-emerald-400" />
             </div>
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-medium">
-              O modo Live usa IA de ultra-baixa latência para diálogos naturais.
-              Sinta-se como se estivesse em uma ligação real!
-            </p>
+            <div className="space-y-1">
+              <p className="text-xs font-black uppercase tracking-widest text-emerald-500/80">Como funciona?</p>
+              <p className="text-xs sm:text-sm text-white/50 leading-relaxed font-medium">
+                O Iwry usa tecnologia de baixa latência. Sinta-se à vontade para interromper, pensar alto e falar no seu ritmo.
+              </p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

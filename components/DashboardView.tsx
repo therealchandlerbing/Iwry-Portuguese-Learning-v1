@@ -24,14 +24,12 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
   const [sessionCompleted, setSessionCompleted] = useState(false);
   const [audioLoading, setAudioLoading] = useState(false);
 
-  // Active Recall Deck: Focus on low confidence words
   const studyDeck = useMemo(() => {
     return [...progress.vocabulary]
       .sort((a, b) => a.confidence - b.confidence)
       .slice(0, 10);
   }, [progress.vocabulary]);
 
-  // Adaptive Recommendations
   const recommendations = useMemo(() => {
     const recs = [];
     const lowestGrammar = Object.entries(progress.grammarMastery)
@@ -89,67 +87,97 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
   }, [progress]);
 
   const stats = [
-    { label: 'Vocabulary', value: progress.vocabulary.length, icon: <Book className="text-blue-500" size={18} /> },
-    { label: 'Practice Time', value: `${progress.totalPracticeMinutes}m`, icon: <Zap className="text-yellow-500" size={18} /> },
-    { label: 'Sessions', value: progress.sessionCount, icon: <MessageCircle className="text-purple-500" size={18} /> },
-    { label: 'Streak', value: `${progress.streak} days`, icon: <Trophy className="text-orange-500" size={18} /> }
+    { label: 'Vocabulário', value: progress.vocabulary.length, icon: <Book className="text-blue-500" size={18} />, color: 'bg-blue-50' },
+    { label: 'Tempo', value: `${progress.totalPracticeMinutes}m`, icon: <Zap className="text-yellow-500" size={18} />, color: 'bg-yellow-50' },
+    { label: 'Sessões', value: progress.sessionCount, icon: <MessageCircle className="text-purple-500" size={18} />, color: 'bg-purple-50' },
+    { label: 'Ofensiva', value: `${progress.streak} dias`, icon: <Trophy className="text-orange-500" size={18} />, color: 'bg-orange-50' }
   ];
 
   if (isStudyMode) {
     return (
-      <div className="h-full bg-slate-50 p-6 flex flex-col items-center justify-center overflow-hidden">
+      <div className="h-full bg-slate-900 p-6 flex flex-col items-center justify-center overflow-hidden animate-in fade-in duration-500">
         <div className="max-w-md w-full flex flex-col items-center gap-8 relative h-full justify-center">
           {!sessionCompleted && (
             <div className="w-full space-y-4 text-center">
               <div className="flex items-center justify-between px-2">
-                <button onClick={() => setIsStudyMode(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
-                  <X size={24} />
+                <button onClick={() => setIsStudyMode(false)} className="text-white/40 hover:text-white transition-colors">
+                  <X size={28} />
                 </button>
-                <span className="text-sm font-bold text-slate-400 tracking-widest uppercase">
-                  {currentCardIndex + 1} / {studyDeck.length}
-                </span>
-                <div className="w-6 h-6" />
+                <div className="flex flex-col">
+                  <span className="text-xs font-black text-emerald-500 tracking-[0.2em] uppercase">Sprint Diário</span>
+                  <span className="text-sm font-bold text-white/40">
+                    {currentCardIndex + 1} de {studyDeck.length}
+                  </span>
+                </div>
+                <div className="w-7 h-7" />
               </div>
-              <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                <div className="h-full bg-emerald-500 transition-all duration-500" style={{ width: `${((currentCardIndex + 1) / studyDeck.length) * 100}%` }} />
+              <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                <div className="h-full bg-emerald-500 transition-all duration-700 shadow-[0_0_10px_rgba(16,185,129,0.5)]" style={{ width: `${((currentCardIndex + 1) / studyDeck.length) * 100}%` }} />
               </div>
             </div>
           )}
 
           {!sessionCompleted ? (
-            <div className="w-full perspective-1000">
-              <div onClick={() => setIsFlipped(!isFlipped)} className={`relative w-full aspect-[3/4] transition-all duration-700 transform-style-3d cursor-pointer ${isFlipped ? 'rotate-y-180' : ''}`}>
-                <div className="absolute inset-0 backface-hidden bg-white rounded-[3rem] shadow-2xl border border-slate-100 flex flex-col items-center justify-center p-10 text-center space-y-6">
-                  <div className="bg-emerald-50 p-4 rounded-3xl text-emerald-600"><Layers size={32} /></div>
+            <div className="w-full perspective-2000">
+              <div onClick={() => setIsFlipped(!isFlipped)} className={`relative w-full aspect-[4/5] sm:aspect-[3/4] transition-all duration-700 transform-style-3d cursor-pointer ${isFlipped ? 'rotate-y-180' : ''}`}>
+                <div className="absolute inset-0 backface-hidden bg-white rounded-[3.5rem] shadow-2xl flex flex-col items-center justify-center p-12 text-center space-y-8">
+                  <div className="bg-emerald-50 p-5 rounded-[2rem] text-emerald-600 shadow-inner"><Layers size={40} /></div>
                   <div className="relative group/word">
-                    <h3 className="text-4xl font-black text-slate-800 tracking-tight">{studyDeck[currentCardIndex]?.word}</h3>
-                    <button onClick={(e) => { e.stopPropagation(); playPronunciation(e, studyDeck[currentCardIndex]?.word); }} className="absolute -right-12 top-1/2 -translate-y-1/2 p-2.5 bg-slate-100 text-slate-500 rounded-full shadow-sm hover:bg-emerald-50 hover:text-emerald-600 transition-all">
-                       {audioLoading ? <Loader2 size={18} className="animate-spin" /> : <Volume2 size={18} />}
+                    <h3 className="text-5xl font-black text-slate-800 tracking-tighter">{studyDeck[currentCardIndex]?.word}</h3>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); playPronunciation(e, studyDeck[currentCardIndex]?.word); }} 
+                      className="absolute -right-14 top-1/2 -translate-y-1/2 p-3 bg-slate-100 text-slate-500 rounded-full shadow-lg hover:bg-emerald-600 hover:text-white transition-all active:scale-90"
+                    >
+                       {audioLoading ? <Loader2 size={22} className="animate-spin" /> : <Volume2 size={22} />}
                     </button>
                   </div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Toque para revelar</span>
+                  <div className="pt-4">
+                    <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] animate-pulse">Toque para revelar</span>
+                  </div>
                 </div>
-                <div className="absolute inset-0 backface-hidden rotate-y-180 bg-emerald-600 rounded-[3rem] shadow-2xl flex flex-col items-center justify-center p-10 text-center text-white space-y-6">
-                  <div className="bg-white/20 p-4 rounded-3xl"><Star size={32} /></div>
-                  <h3 className="text-3xl font-bold">{studyDeck[currentCardIndex]?.meaning}</h3>
-                  <p className="text-emerald-100/80 text-sm">"Não esqueça mais essa, Chandler!"</p>
+                <div className="absolute inset-0 backface-hidden rotate-y-180 bg-emerald-600 rounded-[3.5rem] shadow-2xl flex flex-col items-center justify-center p-12 text-center text-white space-y-8">
+                  <div className="bg-white/20 p-5 rounded-[2rem] shadow-inner"><Star size={40} /></div>
+                  <div className="space-y-2">
+                    <h3 className="text-4xl font-black tracking-tight">{studyDeck[currentCardIndex]?.meaning}</h3>
+                    <p className="text-emerald-100/60 font-medium italic text-sm">"Mandou bem, Chandler!"</p>
+                  </div>
+                  <div className="pt-4">
+                    <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">Toque para voltar</span>
+                  </div>
                 </div>
               </div>
-              <div className={`mt-10 flex gap-4 transition-all duration-500 ${isFlipped ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
-                <button onClick={() => { setIsFlipped(false); currentCardIndex < studyDeck.length - 1 ? setCurrentCardIndex(c => c + 1) : setSessionCompleted(true); }} className="flex-1 bg-white border border-slate-200 text-slate-500 py-4 rounded-2xl font-bold flex items-center justify-center gap-2"><RotateCcw size={18} /> Esqueci</button>
-                <button onClick={() => { setIsFlipped(false); currentCardIndex < studyDeck.length - 1 ? setCurrentCardIndex(c => c + 1) : setSessionCompleted(true); }} className="flex-1 bg-emerald-600 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"><Check size={18} /> Lembrei!</button>
+              <div className={`mt-12 flex gap-4 transition-all duration-500 px-4 ${isFlipped ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'}`}>
+                <button 
+                  onClick={() => { setIsFlipped(false); setTimeout(() => currentCardIndex < studyDeck.length - 1 ? setCurrentCardIndex(c => c + 1) : setSessionCompleted(true), 300); }} 
+                  className="flex-1 bg-white/10 hover:bg-white/20 text-white py-5 rounded-3xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 transition-all border border-white/10 active:scale-95"
+                >
+                  <RotateCcw size={18} /> Esqueci
+                </button>
+                <button 
+                  onClick={() => { setIsFlipped(false); setTimeout(() => currentCardIndex < studyDeck.length - 1 ? setCurrentCardIndex(c => c + 1) : setSessionCompleted(true), 300); }} 
+                  className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-5 rounded-3xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-2xl shadow-emerald-500/30 transition-all active:scale-95"
+                >
+                  <Check size={18} /> Lembrei!
+                </button>
               </div>
             </div>
           ) : (
-            <div className="text-center space-y-8 animate-in zoom-in-95">
-              <div className="w-32 h-32 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner"><Trophy size={64} /></div>
-              <h3 className="text-3xl font-black text-slate-800">Sessão Completa!</h3>
-              <p className="text-slate-500">Seu cérebro agradece. Vocabulário atualizado.</p>
-              <button onClick={() => { setIsStudyMode(false); setSessionCompleted(false); setCurrentCardIndex(0); }} className="w-full bg-slate-900 text-white py-5 rounded-2xl font-bold text-lg">Voltar ao Painel</button>
+            <div className="text-center space-y-10 animate-in zoom-in-95 duration-700 py-10">
+              <div className="relative">
+                <div className="w-40 h-40 bg-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                  <Trophy size={80} />
+                </div>
+                <div className="absolute inset-0 rounded-full animate-ping border-4 border-emerald-500/10 pointer-events-none"></div>
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-4xl font-black text-white tracking-tight">Sessão Completa!</h3>
+                <p className="text-slate-400 font-medium">Seu vocabulário foi reforçado com sucesso.</p>
+              </div>
+              <button onClick={() => { setIsStudyMode(false); setSessionCompleted(false); setCurrentCardIndex(0); }} className="w-full bg-white text-slate-900 py-6 rounded-[2rem] font-black uppercase tracking-[0.2em] text-sm hover:bg-emerald-500 hover:text-white transition-all shadow-2xl active:scale-95">Voltar ao Painel</button>
             </div>
           )}
         </div>
-        <style>{`.perspective-1000 { perspective: 1000px; } .transform-style-3d { transform-style: preserve-3d; } .backface-hidden { backface-visibility: hidden; } .rotate-y-180 { transform: rotateY(180deg); }`}</style>
+        <style>{`.perspective-2000 { perspective: 2000px; } .transform-style-3d { transform-style: preserve-3d; } .backface-hidden { backface-visibility: hidden; } .rotate-y-180 { transform: rotateY(180deg); }`}</style>
       </div>
     );
   }
@@ -171,149 +199,176 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
   };
 
   return (
-    <div className="p-4 sm:p-8 space-y-8 overflow-y-auto h-full bg-slate-50 pb-28">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            E aí, Chandler! <span className="text-2xl">👋</span>
-          </h1>
-          <p className="text-slate-500 font-medium mt-1">Ready for your daily Portuguese push?</p>
+    <div className="p-4 sm:p-8 space-y-10 overflow-y-auto h-full bg-slate-50 pb-32 animate-in fade-in duration-700">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">Fala, Chandler!</h1>
+            <span className="text-3xl animate-bounce">🇧🇷</span>
+          </div>
+          <p className="text-slate-500 font-bold tracking-tight">Pronto para subir de nível no Português hoje?</p>
         </div>
         <div className="flex items-center gap-4">
-           <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-2xl border border-slate-100 shadow-sm">
-            <Activity size={16} className="text-emerald-500" />
-            <span className="text-sm font-bold text-slate-700">Level: {progress.level}</span>
+           <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-2xl border border-slate-200 shadow-sm transition-all hover:shadow-md group">
+            <div className="p-2 bg-emerald-50 text-emerald-500 rounded-lg group-hover:bg-emerald-500 group-hover:text-white transition-colors"><Activity size={18} /></div>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nível</span>
+              <span className="text-sm font-black text-slate-800">{progress.level}</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-2xl border border-slate-100 shadow-sm">
-            <TrendingUp size={16} className="text-blue-500" />
-            <span className="text-sm font-bold text-slate-700">Mastery: 65%</span>
+          <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-2xl border border-slate-200 shadow-sm transition-all hover:shadow-md group">
+            <div className="p-2 bg-blue-50 text-blue-500 rounded-lg group-hover:bg-blue-500 group-hover:text-white transition-colors"><TrendingUp size={18} /></div>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Domínio</span>
+              <span className="text-sm font-black text-slate-800">65%</span>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col items-center">
-          <div className="w-full flex items-center justify-between mb-6">
-             <h3 className="text-lg font-bold text-slate-800">Skill Overview</h3>
-             <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl"><Target size={18} /></div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100 flex flex-col items-center group relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-100 transition-opacity">
+            <Target size={120} className="text-emerald-500" />
           </div>
-          <div className="h-64 w-full">
+          <div className="w-full flex items-center justify-between mb-8 relative z-10">
+             <h3 className="text-lg font-black text-slate-800 uppercase tracking-tighter">Skill Radar</h3>
+             <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl"><Layers size={20} /></div>
+          </div>
+          <div className="h-72 w-full relative z-10">
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
                 <PolarGrid stroke="#f1f5f9" />
-                <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 600 }} />
-                <Radar name="Chandler" dataKey="A" stroke="#10b981" fill="#10b981" fillOpacity={0.2} />
+                <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 800, textAnchor: 'middle' }} />
+                <Radar name="Chandler" dataKey="A" stroke="#10b981" fill="#10b981" fillOpacity={0.2} animationBegin={300} animationDuration={1000} />
               </RadarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        <div className="lg:col-span-2 bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-purple-50 text-purple-600 rounded-lg"><Lightbulb size={18} /></div>
-            <h3 className="text-lg font-bold text-slate-800">Adaptive Recommendations</h3>
+        <div className="lg:col-span-2 bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100 flex flex-col">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="p-2.5 bg-purple-100 text-purple-600 rounded-2xl shadow-sm"><Lightbulb size={24} /></div>
+            <h3 className="text-xl font-black text-slate-800 tracking-tight">Recomendações para você</h3>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 flex-1">
             {recommendations.map(rec => (
-              <div key={rec.id} className="p-6 bg-slate-50 border border-slate-100 rounded-[2rem] hover:border-emerald-200 transition-all flex flex-col justify-between group">
+              <div key={rec.id} className="p-6 bg-slate-50 border border-slate-200/50 rounded-[2.5rem] hover:border-emerald-300 hover:bg-emerald-50/30 transition-all flex flex-col justify-between group shadow-sm">
                 <div>
-                  <div className="mb-3">{rec.icon}</div>
-                  <h4 className="font-bold text-slate-800 mb-2 group-hover:text-emerald-600 transition-colors">{rec.title}</h4>
-                  <p className="text-xs text-slate-500 leading-relaxed mb-4">{rec.desc}</p>
+                  <div className="mb-4 p-3 bg-white w-fit rounded-2xl shadow-sm group-hover:scale-110 transition-transform">{rec.icon}</div>
+                  <h4 className="font-black text-slate-800 text-lg mb-2 leading-tight">{rec.title}</h4>
+                  <p className="text-xs text-slate-500 leading-relaxed mb-6 font-medium">{rec.desc}</p>
                 </div>
                 <button 
                   onClick={() => onStartLesson && onStartLesson(rec.prompt)}
-                  className="w-full py-3 bg-white text-emerald-600 text-xs font-black rounded-xl border border-emerald-100 hover:bg-emerald-600 hover:text-white transition-all flex items-center justify-center gap-2 uppercase tracking-widest"
+                  className="w-full py-4 bg-white text-emerald-600 text-xs font-black rounded-2xl border border-emerald-100 hover:bg-emerald-600 hover:text-white transition-all flex items-center justify-center gap-2 uppercase tracking-[0.2em] shadow-sm group-hover:shadow-lg active:scale-95"
                 >
-                  Start Session <ChevronRight size={14} />
+                  Iniciar Sessão <ChevronRight size={14} />
                 </button>
               </div>
             ))}
-            <div onClick={() => setIsStudyMode(true)} className="p-6 bg-orange-50 border border-orange-100 rounded-[2rem] hover:border-orange-200 transition-all flex flex-col justify-center items-center text-center cursor-pointer group">
-               <Layers className="text-orange-500 mb-3 group-hover:scale-110 transition-transform" size={32} />
-               <h4 className="font-bold text-slate-800 mb-1">Quick Vocabulary</h4>
-               <p className="text-[10px] font-bold text-orange-600 uppercase tracking-widest">10 Card Sprint</p>
+            <div 
+              onClick={() => setIsStudyMode(true)} 
+              className="p-6 bg-orange-50 border border-orange-200/50 rounded-[2.5rem] hover:border-orange-400 hover:shadow-xl hover:shadow-orange-500/10 transition-all flex flex-col justify-center items-center text-center cursor-pointer group relative overflow-hidden"
+            >
+               <div className="absolute inset-0 bg-white/40 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+               <div className="relative z-10 flex flex-col items-center">
+                 <div className="p-4 bg-white rounded-[2rem] shadow-sm mb-4 group-hover:scale-110 transition-transform">
+                   <Layers className="text-orange-500" size={40} />
+                 </div>
+                 <h4 className="font-black text-slate-800 text-lg mb-1">Vocabulário Rápido</h4>
+                 <p className="text-[10px] font-black text-orange-600 uppercase tracking-[0.3em]">Flashcards: 10 Palavras</p>
+               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, idx) => (
-          <div key={idx} className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col justify-between">
-            <div className="p-2.5 bg-slate-50 rounded-xl w-fit mb-4">{stat.icon}</div>
+          <div key={idx} className="bg-white p-7 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col justify-between hover:shadow-md transition-shadow group">
+            <div className={`p-3 ${stat.color} rounded-[1.25rem] w-fit mb-5 group-hover:scale-110 transition-transform shadow-sm`}>{stat.icon}</div>
             <div>
-              <h4 className="text-3xl font-black text-slate-800">{stat.value}</h4>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">{stat.label}</p>
+              <h4 className="text-3xl font-black text-slate-800 tracking-tighter">{stat.value}</h4>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1.5">{stat.label}</p>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="bg-emerald-900 p-8 rounded-[2.5rem] shadow-xl text-white relative overflow-hidden group">
-           <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -mr-20 -mt-20 group-hover:scale-110 transition-transform" />
-           <div className="relative z-10 space-y-4">
-              <div className="flex items-center gap-2 text-emerald-400 font-black uppercase tracking-widest text-[10px]">
-                <Globe size={14} /> Culture Snippet
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="bg-slate-900 p-10 rounded-[3rem] shadow-2xl text-white relative overflow-hidden group">
+           <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500 rounded-full -mr-32 -mt-32 opacity-10 group-hover:scale-110 transition-transform duration-1000" />
+           <div className="relative z-10 space-y-6">
+              <div className="flex items-center gap-3 text-emerald-400 font-black uppercase tracking-[0.2em] text-[10px]">
+                <Globe size={18} /> Pílula de Cultura
               </div>
-              <h3 className="text-2xl font-bold italic">"O jeitinho brasileiro"</h3>
-              <p className="text-emerald-100/80 text-sm leading-relaxed">
-                Not just for bending rules, it's about creativity and warmth in problem-solving. In SP business, it's the bridge that builds trust before a contract.
+              <h3 className="text-3xl font-black italic tracking-tight">"O jeitinho brasileiro"</h3>
+              <p className="text-emerald-100/70 text-[15px] leading-relaxed font-medium">
+                Não é apenas sobre burlar regras, mas sobre criatividade e calor humano na resolução de problemas. No mundo dos negócios em SP, é a ponte que constrói confiança antes de qualquer contrato.
               </p>
-              <div className="pt-2">
-                 <button onClick={() => onStartLesson && onStartLesson("Tell me more about 'O jeitinho brasileiro' and how it applies to innovation consulting in SP.")} className="text-xs font-black uppercase tracking-widest text-emerald-400 flex items-center gap-2 hover:text-white transition-colors">
-                   Discuss with Iwry <ChevronRight size={14} />
+              <div className="pt-4">
+                 <button 
+                   onClick={() => onStartLesson && onStartLesson("Me conte mais sobre o 'jeitinho brasileiro' e como ele se aplica ao consultor de inovação em SP.")} 
+                   className="bg-white/10 hover:bg-white text-emerald-400 hover:text-slate-900 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all flex items-center gap-2"
+                 >
+                   Discutir com Iwry <ChevronRight size={16} />
                  </button>
               </div>
            </div>
         </div>
 
-        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col justify-between">
-           <div className="space-y-4">
-              <div className="flex items-center gap-2 text-slate-400 font-black uppercase tracking-widest text-[10px]">
-                <Book size={14} className="text-blue-500" /> Word of the Day
+        <div className="bg-white p-10 rounded-[3rem] shadow-sm border border-slate-100 flex flex-col justify-between group">
+           <div className="space-y-6">
+              <div className="flex items-center gap-3 text-slate-400 font-black uppercase tracking-[0.2em] text-[10px]">
+                <Book size={18} className="text-blue-500" /> Palavra do Dia
               </div>
-              <div>
-                <h3 className="text-3xl font-black text-slate-800">Gambiarrra</h3>
-                <p className="text-slate-500 text-sm italic mt-1">A clever, improvised solution.</p>
+              <div className="space-y-2">
+                <h3 className="text-4xl font-black text-slate-800 tracking-tighter group-hover:text-blue-600 transition-colors">Gambiarra</h3>
+                <p className="text-slate-500 font-bold italic">Uma solução improvisada e genial.</p>
               </div>
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  "Essa solução no código é uma gambiarra, mas funciona por enquanto!"
+              <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 shadow-inner group-hover:bg-blue-50 transition-colors">
+                <p className="text-sm text-slate-700 leading-relaxed font-medium">
+                  "Essa solução no código é uma <span className="text-blue-600 font-black">gambiarra</span>, mas funciona perfeitamente!"
                 </p>
               </div>
            </div>
-           <button onClick={() => onStartLesson && onStartLesson("How can I use the word 'Gambiarra' in a professional meeting without sounding too informal?")} className="w-full mt-4 py-3 bg-blue-50 text-blue-600 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all">
-              Learn Usage
+           <button 
+             onClick={() => onStartLesson && onStartLesson("Como posso usar a palavra 'Gambiarra' em uma reunião profissional sem parecer informal demais?")} 
+             className="w-full mt-8 py-4 bg-blue-50 text-blue-600 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-blue-600 hover:text-white transition-all shadow-sm active:scale-95"
+           >
+              Aprender Uso Real
            </button>
         </div>
 
-        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+        <div className="bg-white p-10 rounded-[3rem] shadow-sm border border-slate-100 flex flex-col">
            <div className="flex items-center justify-between mb-8">
-            <h3 className="text-lg font-bold text-slate-800">Grammar Focus</h3>
-            <div className="p-2 bg-orange-50 text-orange-600 rounded-xl"><Target size={18} /></div>
+            <h3 className="text-lg font-black text-slate-800 uppercase tracking-tighter">Foco Gramatical</h3>
+            <div className="p-2.5 bg-orange-50 text-orange-600 rounded-xl shadow-sm"><Target size={20} /></div>
           </div>
-          <div className="space-y-6">
+          <div className="space-y-8 flex-1">
             {Object.entries(progress.grammarMastery).map(([name, value], idx) => {
               const mastery = Math.round((value as number) * 100);
               return (
-                <div key={idx} className="space-y-2">
+                <div key={idx} className="space-y-3 group/gram">
                   <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-slate-600">{name}</span>
-                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${mastery > 60 ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-orange-600'}`}>
+                    <span className="text-xs font-black text-slate-600 uppercase tracking-widest group-hover/gram:text-emerald-600 transition-colors">{name}</span>
+                    <span className={`text-[10px] font-black px-3 py-1 rounded-lg shadow-sm ${mastery > 60 ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-orange-600'}`}>
                       {mastery}%
                     </span>
                   </div>
-                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden shadow-inner">
                     <div 
-                      className={`h-full transition-all duration-1000 ${mastery > 60 ? 'bg-emerald-500' : 'bg-orange-500'}`} 
+                      className={`h-full transition-all duration-1000 shadow-[0_0_8px_rgba(0,0,0,0.1)] ${mastery > 60 ? 'bg-emerald-500' : 'bg-orange-500'}`} 
                       style={{ width: `${mastery}%` }} 
                     />
                   </div>
                 </div>
               );
             })}
+          </div>
+          <div className="mt-8 p-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-center">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">O Iwry está monitorando seu progresso em tempo real.</p>
           </div>
         </div>
       </div>
