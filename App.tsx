@@ -318,6 +318,20 @@ const App: React.FC = () => {
     });
   };
 
+  const handleSaveDictionaryWord = (word: string, meaning: string) => {
+    setProgress(prev => {
+      const exists = prev.vocabulary.some(v => v.word.toLowerCase() === word.toLowerCase());
+      if (exists) return prev;
+      return {
+        ...prev,
+        vocabulary: [
+          ...prev.vocabulary,
+          { word, meaning, confidence: 10, lastPracticed: new Date(), source: 'Dictionary' }
+        ].slice(-200)
+      };
+    });
+  };
+
   const renderContent = () => {
     switch (mode) {
       case AppMode.DASHBOARD:
@@ -332,7 +346,7 @@ const App: React.FC = () => {
       case AppMode.IMAGE_ANALYSIS:
         return <ImageAnalyzer onAddMessage={handleUserMessage} difficulty={progress.difficulty} />;
       case AppMode.DICTIONARY:
-        return <DictionaryView />;
+        return <DictionaryView onSaveWord={handleSaveDictionaryWord} savedWords={progress.vocabulary} />;
       case AppMode.IMPORT_MEMORY:
         return <MemoryImportView onImport={syncExternalMemory} />;
       case AppMode.LESSONS:

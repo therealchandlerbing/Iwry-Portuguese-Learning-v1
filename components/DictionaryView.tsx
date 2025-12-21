@@ -1,10 +1,15 @@
 
 import React, { useState } from 'react';
-import { Search, Loader2, Volume2, Book, ArrowRight, Info, AlertCircle, Sparkles, Languages } from 'lucide-react';
+import { Search, Loader2, Volume2, Book, ArrowRight, Info, AlertCircle, Sparkles, Languages, Heart, HeartOff } from 'lucide-react';
 import { getDictionaryDefinition, textToSpeech, decodeAudioData } from '../services/geminiService';
-import { DictionaryEntry } from '../types';
+import { DictionaryEntry, VocabItem } from '../types';
 
-const DictionaryView: React.FC = () => {
+interface DictionaryViewProps {
+  onSaveWord?: (word: string, meaning: string) => void;
+  savedWords?: VocabItem[];
+}
+
+const DictionaryView: React.FC<DictionaryViewProps> = ({ onSaveWord, savedWords = [] }) => {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<DictionaryEntry | null>(null);
@@ -40,7 +45,15 @@ const DictionaryView: React.FC = () => {
     } catch (err) {
       console.error(err);
     } finally {
-      setAudioLoading(null);
+      setAudioLoading(false);
+    }
+  };
+
+  const isAlreadySaved = result ? savedWords.some(v => v.word.toLowerCase() === result.word.toLowerCase()) : false;
+
+  const handleSave = () => {
+    if (result && onSaveWord && !isAlreadySaved) {
+      onSaveWord(result.word, result.meaning);
     }
   };
 
@@ -82,12 +95,26 @@ const DictionaryView: React.FC = () => {
               <div className="space-y-2">
                 <div className="flex items-center gap-4">
                   <h1 className="text-5xl font-black text-slate-900 tracking-tighter">{result.word}</h1>
-                  <button 
-                    onClick={playPronunciation}
-                    className="p-3 bg-emerald-50 text-emerald-600 rounded-full hover:bg-emerald-100 transition-all group"
-                  >
-                    {audioLoading ? <Loader2 size={24} className="animate-spin" /> : <Volume2 size={24} className="group-hover:scale-110 transition-transform" />}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={playPronunciation}
+                      className="p-3 bg-emerald-50 text-emerald-600 rounded-full hover:bg-emerald-100 transition-all group"
+                    >
+                      {audioLoading ? <Loader2 size={24} className="animate-spin" /> : <Volume2 size={24} className="group-hover:scale-110 transition-transform" />}
+                    </button>
+                    <button 
+                      onClick={handleSave}
+                      disabled={isAlreadySaved}
+                      className={`p-3 rounded-full transition-all group ${
+                        isAlreadySaved 
+                          ? 'bg-emerald-500 text-white cursor-default' 
+                          : 'bg-slate-50 text-slate-400 hover:bg-pink-50 hover:text-pink-500'
+                      }`}
+                      title={isAlreadySaved ? "Salvo no vocabulário" : "Salvar no vocabulário"}
+                    >
+                      <Heart size={24} className={`${isAlreadySaved ? 'fill-white' : 'group-hover:fill-pink-500 transition-colors'}`} />
+                    </button>
+                  </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <span className="px-3 py-1 bg-slate-100 text-slate-500 rounded-lg text-[10px] font-black uppercase tracking-widest">{result.category}</span>
