@@ -6,22 +6,21 @@ import {
   Mic, 
   Volume2, 
   Loader2, 
-  Target, 
   MapPin, 
-  Coffee, 
   Utensils, 
-  ShoppingBag, 
   Sparkles, 
   LogOut, 
   Image as ImageIcon, 
-  X,
-  ShoppingBasket,
-  Music,
   Users,
   Beer,
-  ChevronDown,
-  ChevronUp,
-  Info
+  Info,
+  CheckCheck,
+  ChevronLeft,
+  Paperclip,
+  Smile,
+  MoreVertical,
+  Phone,
+  Video
 } from 'lucide-react';
 import { generateChatResponse, textToSpeech, transcribeAudio, decodeAudioData } from '../services/geminiService';
 
@@ -36,70 +35,45 @@ interface ChatViewProps {
 }
 
 const SCENARIO_STARTERS = [
-  { id: 'food', label: 'Order Food', icon: <Utensils size={16} />, prompt: "I'd like to practice ordering food at a restaurant. You are the waiter and I'm the customer." },
-  { id: 'directions', label: 'Directions', icon: <MapPin size={16} />, prompt: "I'm lost in the city. Can you help me practice asking for directions? I'll start." },
-  { id: 'padaria', label: 'Bakery', icon: <Coffee size={16} />, prompt: "Let's roleplay at a traditional Brazilian Padaria. You are the atendente." },
-  { id: 'shopping', label: 'Shopping', icon: <ShoppingBag size={16} />, prompt: "I want to practice shopping for clothes at a mall. You are the salesperson." },
-  { id: 'supermarket', label: 'Supermarket', icon: <ShoppingBasket size={16} />, prompt: "Quero praticar fazer compras no supermercado. Você é o caixa e eu sou o cliente buscando alguns itens." },
-  { id: 'party', label: 'Party Chat', icon: <Music size={16} />, prompt: "Vamos praticar conversa em uma festa de aniversário. Estamos na Vila Madalena. Você começa o papo?" },
-  { id: 'meeting', label: 'Work Meeting', icon: <Users size={16} />, prompt: "Iwry, vamos simular o início de uma reunião de trabalho (quebra-gelo) com colegas brasileiros em São Paulo." },
-  { id: 'bar', label: 'Happy Hour', icon: <Beer size={16} />, prompt: "Quero praticar pedir petiscos e drinks em um barzinho de happy hour em Pinheiros. Você é o garçom." },
+  { id: 'food', label: 'Order Food', icon: <Utensils size={16} />, prompt: "I'd like to practice ordering food. You are the waiter and I'm the customer." },
+  { id: 'meeting', label: 'Work Meeting', icon: <Users size={16} />, prompt: "Iwry, vamos simular o início de uma reunião de trabalho estratégica em São Paulo." },
+  { id: 'bar', label: 'Happy Hour', icon: <Beer size={16} />, prompt: "Quero praticar pedir drinks e petiscos em um bar de Pinheiros." },
 ];
 
 const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, difficulty, memories, selectedTopics, onFinish }) => {
+  const isWhatsApp = mode === AppMode.TEXT_MODE;
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [audioLoading, setAudioLoading] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [isStartersExpanded, setIsStartersExpanded] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
   useEffect(() => {
-    scrollToBottom();
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
   const handleSend = async (textOverride?: string) => {
     const text = textOverride || input;
     if (!text.trim() && !selectedImage) return;
-
     const currentImage = selectedImage;
     if (!textOverride) setInput('');
     setSelectedImage(null);
-
     onAddMessage({ role: 'user', content: text, imageUrl: currentImage || undefined });
     setLoading(true);
-
     try {
       const chatHistory = messages.map(m => ({ role: m.role, content: m.content }));
       const response = await generateChatResponse(mode, chatHistory, text, difficulty, memories, currentImage || undefined, selectedTopics);
       onAddMessage({ role: 'assistant', content: response });
     } catch (err) {
-      console.error(err);
-      onAddMessage({ role: 'assistant', content: "Desculpe, tive um problema técnico. Pode repetir?" });
+      onAddMessage({ role: 'assistant', content: "Ops, algo deu errado. Pode tentar de novo?" });
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setSelectedImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const playAudio = async (text: string, msgId: string) => {
@@ -115,11 +89,7 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, diffi
         source.connect(audioContext.destination);
         source.start();
       }
-    } catch (err) {
-      console.error("Playback error:", err);
-    } finally {
-      setAudioLoading(null);
-    }
+    } catch (err) { console.error(err); } finally { setAudioLoading(null); }
   };
 
   const startRecording = async () => {
@@ -128,36 +98,22 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, diffi
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data);
-      };
-
+      mediaRecorder.ondataavailable = (e) => chunksRef.current.push(e.data);
       mediaRecorder.onstop = async () => {
         const blob = new Blob(chunksRef.current, { type: 'audio/wav' });
         const reader = new FileReader();
         reader.onloadend = async () => {
           const base64 = (reader.result as string).split(',')[1];
           setLoading(true);
-          try {
-            const transcription = await transcribeAudio(base64);
-            if (transcription.trim()) {
-              handleSend(transcription);
-            } else {
-              setLoading(false);
-            }
-          } catch (e) {
-            setLoading(false);
-          }
+          const transcription = await transcribeAudio(base64);
+          if (transcription.trim()) handleSend(transcription);
+          else setLoading(false);
         };
         reader.readAsDataURL(blob);
       };
-
       mediaRecorder.start();
       setIsRecording(true);
-    } catch (err) {
-      console.error("Mic error:", err);
-    }
+    } catch (err) { console.error(err); }
   };
 
   const stopRecording = () => {
@@ -167,240 +123,170 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, diffi
     }
   };
 
-  const visibleStarters = isStartersExpanded ? SCENARIO_STARTERS : SCENARIO_STARTERS.slice(0, 4);
-
   return (
-    <div className="flex flex-col h-full bg-slate-50 relative overflow-hidden">
-      {/* Header Overlay */}
-      <div className="absolute top-0 left-0 right-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200/60 px-4 py-2 flex items-center justify-between">
-        <div className="flex items-center gap-3 overflow-x-auto whitespace-nowrap no-scrollbar pr-4">
-          <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 font-bold text-[10px] uppercase tracking-widest shrink-0 px-2 py-1 rounded-lg">
-             {difficulty} Level
-          </div>
-          {selectedTopics && selectedTopics.length > 0 && (
-            <div className="flex gap-2">
-              {selectedTopics.map(topicId => (
-                <span key={topicId} className="bg-slate-100 text-slate-500 px-2.5 py-1 rounded-lg border border-slate-200 text-[10px] font-black uppercase tracking-tight">
-                  {topicId}
-                </span>
-              ))}
+    <div className={`flex flex-col h-full relative overflow-hidden transition-all duration-700 ${isWhatsApp ? 'bg-[#e5ddd5]' : 'bg-slate-50'}`}>
+      
+      {/* HEADER FORK */}
+      <div className={`z-40 flex items-center justify-between px-4 py-3 border-b shadow-sm ${
+        isWhatsApp ? 'bg-[#075E54] text-white border-[#054c44]' : 'bg-white text-slate-900 border-slate-200'
+      }`}>
+        <div className="flex items-center gap-3">
+          {isWhatsApp ? (
+            <div className="flex items-center gap-2">
+              <ChevronLeft size={24} className="cursor-pointer" onClick={onFinish} />
+              <div className="relative">
+                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Iwry" alt="Iwry" className="w-10 h-10 rounded-full bg-white/20" />
+                <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-400 border-2 border-[#075E54] rounded-full"></div>
+              </div>
+              <div>
+                <h3 className="font-bold leading-none text-base">Iwry</h3>
+                <span className="text-[10px] text-emerald-200">online</span>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+               <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl"><Users size={20} /></div>
+               <h3 className="font-black tracking-tight">Prática de Conversação</h3>
             </div>
           )}
         </div>
-        {onFinish && messages.length > 1 && (
-          <button 
-            onClick={onFinish}
-            className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-emerald-600 transition-all py-2 px-4 rounded-xl bg-white border border-slate-200 shadow-sm hover:border-emerald-200 active:scale-95"
-          >
-            <LogOut size={12} /> Encerrar
-          </button>
-        )}
+        <div className="flex items-center gap-4">
+          {isWhatsApp ? (
+            <div className="flex items-center gap-5 text-white/90">
+              <Video size={20} />
+              <Phone size={18} />
+              <MoreVertical size={20} />
+            </div>
+          ) : (
+            <button onClick={onFinish} className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-red-500 transition-all"><LogOut size={20} /></button>
+          )}
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto pt-14 pb-48 px-4 sm:px-8 space-y-4 sm:space-y-6">
-        {messages.length < 2 && !loading && (
-          <div className="py-12 space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
-            <div className="text-center space-y-3">
-              <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto mb-2 shadow-inner">
-                <Sparkles size={32} />
-              </div>
-              <h3 className="text-xl font-black text-slate-800 tracking-tight">Fala comigo, Chandler!</h3>
-              <p className="text-sm text-slate-500 max-w-xs mx-auto leading-relaxed">
-                Você está no nível <span className="text-emerald-600 font-bold">{difficulty}</span>. Vamos praticar?
-              </p>
-            </div>
-            <div className="max-w-md mx-auto space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                {visibleStarters.map((scenario) => (
-                  <button
-                    key={scenario.id}
-                    onClick={() => handleSend(scenario.prompt)}
-                    className="bg-white border border-slate-200 p-5 rounded-[2rem] flex flex-col items-center gap-3 hover:border-emerald-500 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all text-center group active:scale-95 animate-in zoom-in-90 duration-300"
-                  >
-                    <div className="p-3 bg-slate-50 text-slate-400 group-hover:bg-emerald-50 group-hover:text-emerald-600 rounded-2xl transition-colors shadow-sm">
-                      {scenario.icon}
-                    </div>
-                    <span className="text-xs font-black text-slate-700 uppercase tracking-tight">{scenario.label}</span>
-                  </button>
-                ))}
-              </div>
-              <button 
-                onClick={() => setIsStartersExpanded(!isStartersExpanded)}
-                className="w-full py-3 flex items-center justify-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest hover:text-emerald-600 transition-colors group"
-              >
-                {isStartersExpanded ? (
-                  <><ChevronUp size={14} className="group-hover:-translate-y-0.5 transition-transform" /> Ver menos</>
-                ) : (
-                  <><ChevronDown size={14} className="group-hover:translate-y-0.5 transition-transform" /> Ver mais cenários</>
-                )}
-              </button>
-            </div>
+      {/* WHATSAPP DOODLE PATTERN */}
+      {isWhatsApp && (
+        <div className="absolute inset-0 opacity-[0.05] pointer-events-none z-0" style={{ backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")', backgroundSize: '400px' }} />
+      )}
+
+      {/* MESSAGES FORK */}
+      <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-6 space-y-4 relative z-10 no-scrollbar">
+        {messages.length < 2 && !loading && !isWhatsApp && (
+          <div className="max-w-md mx-auto grid grid-cols-2 gap-3 py-10 animate-in fade-in zoom-in-95 duration-500">
+             {SCENARIO_STARTERS.map(s => (
+               <button key={s.id} onClick={() => handleSend(s.prompt)} className="bg-white p-4 rounded-3xl border border-slate-200 hover:border-emerald-500 hover:shadow-lg transition-all text-center flex flex-col items-center gap-2 group">
+                 <div className="p-2 bg-slate-50 text-slate-400 group-hover:text-emerald-500 transition-colors">{s.icon}</div>
+                 <span className="text-[10px] font-black uppercase text-slate-600">{s.label}</span>
+               </button>
+             ))}
           </div>
         )}
 
         {messages.map((msg, idx) => {
+          const isUser = msg.role === 'user';
           const isCorrection = msg.isCorrection;
+
           return (
-            <div 
-              key={msg.id} 
-              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}
-              style={{ animationDelay: `${idx * 50}ms` }}
-            >
-              <div className={`max-w-[90%] sm:max-w-[75%] group ${msg.role === 'user' ? 'order-2' : ''}`}>
-                <div className={`flex items-end gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                  <div className={`rounded-3xl px-5 py-3.5 shadow-sm text-[15px] sm:text-base space-y-2 relative ${
-                    isCorrection 
-                      ? 'bg-amber-50 border border-amber-200 text-amber-900 rounded-bl-none'
-                      : msg.role === 'user' 
-                        ? 'bg-emerald-600 text-white rounded-br-none' 
-                        : 'bg-white text-slate-800 border border-slate-100 rounded-bl-none'
-                  }`}>
-                    {isCorrection && (
-                      <div className="flex items-center gap-2 mb-2 text-amber-600 font-black text-[10px] uppercase tracking-[0.2em]">
-                        <Info size={14} /> Correção Modular
-                      </div>
-                    )}
-                    {msg.imageUrl && (
-                      <div className="rounded-2xl overflow-hidden mb-2 shadow-inner">
-                        <img src={msg.imageUrl} alt="User upload" className="max-w-full h-auto" />
-                      </div>
-                    )}
-                    <p className={`whitespace-pre-wrap leading-relaxed ${isCorrection ? 'font-bold' : 'font-medium'}`}>{msg.content}</p>
+            <div key={msg.id} className={`flex ${isUser ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
+              <div className={`max-w-[85%] sm:max-w-[70%] group flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
+                
+                {/* WHATSAPP BUBBLES */}
+                {isWhatsApp ? (
+                  <div className={`relative px-3 py-2 shadow-sm rounded-xl mb-1 ${isUser ? 'bg-[#DCF8C6] rounded-tr-none' : 'bg-white rounded-tl-none'}`}>
+                    {/* Tiny "tail" simulation */}
+                    <div className={`absolute top-0 w-3 h-3 ${isUser ? '-right-1.5 bg-[#DCF8C6] clip-tail-right' : '-left-1.5 bg-white clip-tail-left'}`}></div>
                     
-                    {msg.correctionData && (
-                      <div className="mt-4 pt-4 border-t border-amber-200/50 space-y-2">
-                        <p className="text-[10px] uppercase tracking-widest text-amber-500 font-black">Categoria: {msg.correctionData.category}</p>
-                        <p className="text-xs text-amber-800 opacity-80 leading-relaxed italic">Salvo na sua Biblioteca de Correções para revisão futura.</p>
-                      </div>
+                    {msg.imageUrl && <img src={msg.imageUrl} className="rounded-lg mb-2 max-w-full" alt="Uploaded" />}
+                    <p className="text-[15px] leading-tight text-slate-800">{msg.content}</p>
+                    
+                    <div className="flex items-center justify-end gap-1 mt-1">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase">{msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      {isUser && <CheckCheck size={14} className="text-blue-400" />}
+                    </div>
+                  </div>
+                ) : (
+                  /* CONVERSATION BUBBLES */
+                  <div className={`relative flex items-end gap-2 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
+                    <div className={`px-5 py-3 rounded-2xl shadow-sm border ${
+                      isCorrection ? 'bg-amber-50 border-amber-200 text-amber-900' :
+                      isUser ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-white border-slate-100 text-slate-800'
+                    }`}>
+                      {isCorrection && <div className="flex items-center gap-1.5 mb-2 text-[10px] font-black uppercase tracking-widest text-amber-600"><Info size={12} /> Dica de Iwry</div>}
+                      {msg.imageUrl && <img src={msg.imageUrl} className="rounded-xl mb-3 border border-black/5" alt="Uploaded" />}
+                      <p className="text-[15px] leading-relaxed">{msg.content}</p>
+                    </div>
+                    {!isUser && !isCorrection && (
+                      <button onClick={() => playAudio(msg.content, msg.id)} className="p-2 bg-white rounded-full shadow-sm text-slate-400 hover:text-emerald-500 hover:scale-110 transition-all">
+                        {audioLoading === msg.id ? <Loader2 size={16} className="animate-spin" /> : <Volume2 size={16} />}
+                      </button>
                     )}
                   </div>
-                  
-                  {msg.role === 'assistant' && (
-                    <button 
-                      onClick={() => playAudio(msg.content, msg.id)}
-                      className={`p-3 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-full transition-all active:scale-90 ${audioLoading === msg.id ? 'bg-emerald-50' : ''}`}
-                      disabled={!!audioLoading}
-                      aria-label="Escutar áudio"
-                    >
-                      {audioLoading === msg.id ? <Loader2 size={18} className="animate-spin text-emerald-500" /> : <Volume2 size={18} />}
-                    </button>
-                  )}
-                </div>
-                <p className={`text-[10px] mt-1.5 px-2 text-slate-400 font-bold uppercase tracking-widest ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
-                  {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </p>
+                )}
               </div>
             </div>
           );
         })}
+
         {loading && (
-          <div className="flex justify-start animate-in fade-in duration-300">
-            <div className="bg-white/50 backdrop-blur border border-slate-200/50 rounded-3xl rounded-bl-none px-5 py-3 shadow-sm flex items-center gap-3">
-              <div className="flex gap-1">
-                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce"></div>
-              </div>
-              <span className="text-[11px] text-slate-400 font-bold uppercase tracking-widest">Iwry está pensando...</span>
-            </div>
+          <div className="flex justify-start">
+             <div className={`${isWhatsApp ? 'bg-white' : 'bg-white/50'} px-4 py-2 rounded-xl shadow-sm flex items-center gap-2`}>
+                <span className={`text-xs font-bold italic ${isWhatsApp ? 'text-emerald-800' : 'text-slate-400'}`}>
+                  {isWhatsApp ? 'digitando...' : 'Iwry está pensando...'}
+                </span>
+                <div className="flex gap-1 animate-pulse"><div className="w-1 h-1 bg-slate-300 rounded-full" /><div className="w-1 h-1 bg-slate-300 rounded-full" /><div className="w-1 h-1 bg-slate-300 rounded-full" /></div>
+             </div>
           </div>
         )}
         <div ref={messagesEndRef} className="h-4" />
       </div>
 
-      {/* Input Bar */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 bg-slate-50/80 backdrop-blur-xl border-t border-slate-200/60 z-40">
-        <div className="max-w-4xl mx-auto space-y-4">
-          {selectedImage && (
-            <div className="relative inline-block animate-in slide-in-from-bottom-4 duration-300">
-              <img src={selectedImage} alt="Selected" className="h-24 w-auto rounded-[1.5rem] border-4 border-white shadow-2xl object-cover ring-2 ring-emerald-500/20" />
-              <button 
-                onClick={() => setSelectedImage(null)}
-                className="absolute -top-3 -right-3 bg-slate-900 text-white p-1.5 rounded-full shadow-lg border-2 border-white hover:bg-red-500 transition-colors"
-              >
-                <X size={14} />
-              </button>
+      {/* INPUT BAR FORK */}
+      <div className={`p-3 sm:p-4 z-50 ${isWhatsApp ? 'bg-[#F0F2F5]' : 'bg-white/80 backdrop-blur-xl border-t border-slate-100'}`}>
+        <div className="max-w-4xl mx-auto flex items-center gap-2 sm:gap-3">
+          {isWhatsApp ? (
+            <div className="flex items-center gap-3 text-slate-500 px-1">
+              <Smile size={24} />
+              <Paperclip size={22} onClick={() => fileInputRef.current?.click()} />
             </div>
+          ) : (
+            <button onClick={() => fileInputRef.current?.click()} className="p-2 text-slate-400 hover:text-emerald-500"><ImageIcon size={22} /></button>
           )}
 
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <button 
-                onClick={() => fileInputRef.current?.click()}
-                className="p-4 bg-white text-slate-500 rounded-2xl hover:bg-emerald-50 hover:text-emerald-600 transition-all shadow-sm border border-slate-200 active:scale-90"
-                aria-label="Enviar foto"
-              >
-                <ImageIcon size={22} />
-              </button>
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleFileChange} 
-                className="hidden" 
-                accept="image/*" 
-              />
-              
-              <button 
-                onTouchStart={startRecording}
-                onTouchEnd={stopRecording}
-                onMouseDown={startRecording}
-                onMouseUp={stopRecording}
-                className={`p-4 rounded-2xl transition-all shadow-lg active:scale-95 ${
-                  isRecording 
-                    ? 'bg-red-50 text-red-500 shadow-red-500/10 ring-4 ring-red-500/5 border-red-200' 
-                    : 'bg-white text-slate-500 hover:text-emerald-600 border border-slate-200'
-                }`}
-                aria-label="Gravar áudio"
-              >
-                {isRecording ? (
-                  <div className="relative flex items-center justify-center w-[22px] h-[22px]">
-                    <div className="absolute w-3 h-3 bg-red-500 rounded-full animate-ping opacity-75"></div>
-                    <div className="relative w-3 h-3 bg-red-500 rounded-full"></div>
-                  </div>
-                ) : (
-                  <Mic size={22} />
-                )}
-              </button>
-            </div>
-            
-            <div className="flex-1 relative flex items-center">
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                placeholder={isRecording ? "Solte para transcrever..." : "Escreva em português..."}
-                className="w-full bg-white border border-slate-200 rounded-2xl px-5 py-4 text-[16px] text-slate-800 placeholder:text-slate-400 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all shadow-sm"
-                disabled={loading}
-              />
-              {input.trim() && (
-                <button 
-                  onClick={() => handleSend()}
-                  disabled={loading}
-                  className="absolute right-2 p-2.5 bg-emerald-600 text-white rounded-xl active:bg-emerald-700 shadow-lg shadow-emerald-500/20 transition-all hover:scale-105"
-                >
-                  <Send size={18} />
-                </button>
-              )}
-            </div>
-            
-            {!input.trim() && selectedImage && (
-              <button 
-                onClick={() => handleSend()}
-                disabled={loading}
-                className="p-4 bg-emerald-600 text-white rounded-2xl active:bg-emerald-700 shadow-lg shadow-emerald-500/20 transition-all"
-              >
-                <Send size={22} />
-              </button>
-            )}
+          <div className={`flex-1 flex items-center ${isWhatsApp ? 'bg-white rounded-full px-4 py-1.5 shadow-sm' : ''}`}>
+            <input 
+              type="text" value={input} onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+              placeholder={isWhatsApp ? "Mensagem" : "Escreva em português..."}
+              className={`w-full outline-none py-2 text-[16px] ${isWhatsApp ? 'bg-transparent text-slate-700' : 'bg-slate-50 px-4 rounded-xl border border-slate-200'}`}
+            />
+            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                const reader = new FileReader();
+                reader.onloadend = () => setSelectedImage(reader.result as string);
+                reader.readAsDataURL(file);
+              }
+            }} />
           </div>
-          {isRecording && (
-            <div className="text-center animate-pulse">
-              <span className="text-[10px] font-black text-red-500 uppercase tracking-[0.2em]">Ouvindo você...</span>
-            </div>
-          )}
+
+          <button 
+             onMouseDown={startRecording} onMouseUp={stopRecording}
+             onTouchStart={startRecording} onTouchEnd={stopRecording}
+             className={`p-3.5 rounded-full shadow-lg transition-all active:scale-95 ${
+               isWhatsApp 
+                ? 'bg-[#00a884] text-white hover:bg-[#008f72]' 
+                : isRecording ? 'bg-red-500 text-white' : 'bg-emerald-600 text-white'
+             }`}
+           >
+              {isRecording ? <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : (input.trim() ? <Send size={22} onClick={() => handleSend()} /> : <Mic size={22} />)}
+           </button>
         </div>
       </div>
+
+      <style>{`
+        .clip-tail-right { clip-path: polygon(0% 0%, 100% 0%, 0% 100%); }
+        .clip-tail-left { clip-path: polygon(0% 0%, 100% 0%, 100% 100%); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+      `}</style>
     </div>
   );
 };
