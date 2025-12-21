@@ -30,13 +30,6 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode }) => {
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Bom dia, Chandler! 🇧🇷</h1>
           <p className="text-slate-500 font-medium">Ready to take your Portuguese to level C1 today?</p>
         </div>
-        <button 
-          onClick={() => setMode(AppMode.IMPORT_MEMORY)}
-          className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/10 active:scale-95"
-        >
-          <PlusCircle size={20} />
-          Add External Study
-        </button>
       </div>
 
       {/* Quick Start Cards */}
@@ -107,7 +100,16 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode }) => {
 
         {/* Recent Memories */}
         <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col">
-          <h3 className="text-lg font-bold mb-6 text-slate-800">Recent Studies</h3>
+          <h3 className="text-lg font-bold mb-4 text-slate-800">Recent Studies</h3>
+          
+          <button 
+            onClick={() => setMode(AppMode.IMPORT_MEMORY)}
+            className="bg-slate-900 text-white w-full py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/10 active:scale-95 mb-6"
+          >
+            <PlusCircle size={20} />
+            Add External Study
+          </button>
+
           <div className="space-y-4 flex-1">
             {progress.memories.length > 0 ? (
               progress.memories.slice(0, 3).map((memory, idx) => (
@@ -122,18 +124,12 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode }) => {
                 </div>
               ))
             ) : (
-              <div className="flex-1 flex flex-col items-center justify-center text-center opacity-50">
+              <div className="flex-1 flex flex-col items-center justify-center text-center opacity-50 py-10">
                 <Book className="mb-2 text-slate-300" size={32} />
-                <p className="text-xs font-medium text-slate-400">No external studies yet. Import your first homework!</p>
+                <p className="text-xs font-medium text-slate-400 px-4">No external studies yet. Import your first homework!</p>
               </div>
             )}
           </div>
-          <button 
-            onClick={() => setMode(AppMode.IMPORT_MEMORY)}
-            className="w-full py-4 text-sm font-bold text-emerald-600 bg-emerald-50 rounded-2xl mt-6 active:scale-95 transition-all"
-          >
-            Add Memory
-          </button>
         </div>
       </div>
     </div>
