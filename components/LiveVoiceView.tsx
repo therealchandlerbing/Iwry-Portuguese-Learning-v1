@@ -26,7 +26,18 @@ const LiveVoiceView: React.FC<LiveVoiceViewProps> = ({ memories, difficulty }) =
     setError(null);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      // Fetch API key from secure endpoint
+      const token = localStorage.getItem('auth_token');
+      const keyResponse = await fetch('/api/live-key', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!keyResponse.ok) {
+        throw new Error('Failed to initialize voice connection');
+      }
+
+      const { key } = await keyResponse.json();
+      const ai = new GoogleGenAI({ apiKey: key });
       
       inputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
@@ -117,8 +128,15 @@ const LiveVoiceView: React.FC<LiveVoiceViewProps> = ({ memories, difficulty }) =
       });
 
       sessionRef.current = await sessionPromise;
-    } catch (err) {
-      setError("Não foi possível acessar seu microfone. Verifique as permissões.");
+    } catch (err: any) {
+      console.error('Live voice error:', err);
+      if (err.message === 'Failed to initialize voice connection') {
+        setError("Não foi possível conectar ao serviço de voz. Tente novamente mais tarde.");
+      } else if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        setError("Não foi possível acessar seu microfone. Verifique as permissões.");
+      } else {
+        setError("Ocorreu um erro. Verifique sua conexão e tente novamente.");
+      }
       setStatus('idle');
     }
   };
