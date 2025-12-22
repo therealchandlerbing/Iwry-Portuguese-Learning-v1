@@ -26,6 +26,16 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
   const [isFlipped, setIsFlipped] = useState(false);
   const [sessionCompleted, setSessionCompleted] = useState(false);
   const [audioLoading, setAudioLoading] = useState(false);
+  const [isChartMounted, setIsChartMounted] = useState(false);
+
+  // Delay chart rendering to ensure DOM is ready and prevent MutationObserver errors
+  useEffect(() => {
+    const timer = setTimeout(() => setIsChartMounted(true), 100);
+    return () => {
+      clearTimeout(timer);
+      setIsChartMounted(false);
+    };
+  }, []);
 
   const labels = useMemo(() => {
     const l = {
@@ -113,20 +123,26 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
           </div>
 
           <div className="h-[350px] w-full relative z-10 flex items-center justify-center min-w-0">
-            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-              <RadarChart cx="50%" cy="50%" outerRadius="62%" data={radarData}>
-                <PolarGrid stroke="#e2e8f0" />
-                <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 9, fontWeight: 900 }} />
-                <Radar 
-                  name="Proficiência" 
-                  dataKey="A" 
-                  stroke="#10b981" 
-                  strokeWidth={4}
-                  fill="#10b981" 
-                  fillOpacity={0.6} 
-                />
-              </RadarChart>
-            </ResponsiveContainer>
+            {isChartMounted ? (
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                <RadarChart cx="50%" cy="50%" outerRadius="62%" data={radarData}>
+                  <PolarGrid stroke="#e2e8f0" />
+                  <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 9, fontWeight: 900 }} />
+                  <Radar
+                    name="Proficiência"
+                    dataKey="A"
+                    stroke="#10b981"
+                    strokeWidth={4}
+                    fill="#10b981"
+                    fillOpacity={0.6}
+                  />
+                </RadarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
           </div>
 
           <div className="w-full mt-auto pt-8 border-t border-slate-50 flex justify-between items-end">
