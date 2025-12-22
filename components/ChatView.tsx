@@ -70,7 +70,7 @@ const SCENARIOS = [
   },
   {
     id: 'business-meeting',
-    icon: 'Briefcase',
+    icon: 'Users',
     label: 'Reunião de Negócios',
     prompt: 'I am leading a business meeting with Brazilian partners. Help me conduct the meeting professionally.',
     levels: ['ADVANCED']
@@ -91,17 +91,26 @@ const SCENARIOS = [
   }
 ];
 
+// Icon map for scenario icons - more maintainable than switch statement
+const SCENARIO_ICON_MAP: Record<string, typeof Sparkles> = {
+  'Coffee': Coffee,
+  'Utensils': Utensils,
+  'MapPin': MapPin,
+  'Users': Users,
+  'Briefcase': Briefcase,
+  'Stethoscope': Stethoscope,
+  'Plane': Plane,
+};
+
 const getScenarioIcon = (iconName: string) => {
-  switch (iconName) {
-    case 'Coffee': return Coffee;
-    case 'Utensils': return Utensils;
-    case 'MapPin': return MapPin;
-    case 'Users': return Users;
-    case 'Briefcase': return Briefcase;
-    case 'Stethoscope': return Stethoscope;
-    case 'Plane': return Plane;
-    default: return Sparkles;
-  }
+  return SCENARIO_ICON_MAP[iconName] || Sparkles;
+};
+
+// Difficulty level labels for display
+const DIFFICULTY_LABELS: Record<DifficultyLevel, string> = {
+  [DifficultyLevel.BEGINNER]: 'Iniciante',
+  [DifficultyLevel.INTERMEDIATE]: 'Intermediário',
+  [DifficultyLevel.ADVANCED]: 'Avançado',
 };
 
 interface ChatViewProps {
@@ -278,7 +287,7 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, diffi
             <div className="flex items-center justify-between mb-4">
               <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest">Escolha um Cenário</h4>
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                Nível: {difficulty === DifficultyLevel.BEGINNER ? 'Iniciante' : difficulty === DifficultyLevel.INTERMEDIATE ? 'Intermediário' : 'Avançado'}
+                Nível: {DIFFICULTY_LABELS[difficulty]}
               </span>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

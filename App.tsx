@@ -221,6 +221,31 @@ const App: React.FC = () => {
     }
   }, [mode]);
 
+  // Save practice minutes before page unload to prevent data loss
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (sessionStartTime && TRACKED_MODES.includes(mode)) {
+        const minutes = Math.floor((Date.now() - sessionStartTime.getTime()) / 60000);
+        if (minutes > 0) {
+          // Synchronously update localStorage before page closes
+          const savedProgress = localStorage.getItem('fala_comigo_progress');
+          if (savedProgress) {
+            try {
+              const parsed = JSON.parse(savedProgress);
+              parsed.totalPracticeMinutes = (parsed.totalPracticeMinutes || 0) + minutes;
+              localStorage.setItem('fala_comigo_progress', JSON.stringify(parsed));
+            } catch (e) {
+              console.error('Failed to save practice minutes on unload', e);
+            }
+          }
+        }
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [sessionStartTime, mode]);
+
   useEffect(() => {
     const checkBadges = () => {
       let updated = false;
@@ -355,15 +380,15 @@ const App: React.FC = () => {
           }
         });
 
-        // Calculate streak based on consecutive days
+        // Calculate streak based on consecutive days (using UTC for timezone consistency)
         const today = new Date();
         const lastSession = new Date(prev.lastSessionDate);
 
-        // Normalize to date only (no time)
-        const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        const lastDate = new Date(lastSession.getFullYear(), lastSession.getMonth(), lastSession.getDate());
+        // Normalize to UTC date only (no time) for consistent timezone handling
+        const todayDateUTC = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
+        const lastDateUTC = Date.UTC(lastSession.getUTCFullYear(), lastSession.getUTCMonth(), lastSession.getUTCDate());
 
-        const diffDays = Math.floor((todayDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+        const diffDays = Math.floor((todayDateUTC - lastDateUTC) / (1000 * 60 * 60 * 24));
 
         let newStreak = prev.streak;
         if (diffDays === 0) {

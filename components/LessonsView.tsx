@@ -138,8 +138,13 @@ const LessonsView: React.FC<LessonsViewProps> = ({ customModules, onSaveCustomMo
                 <div
                   key={sub.id}
                   className={`group p-6 bg-white border rounded-[2.5rem] text-left transition-all flex flex-col justify-between ${
-                    isCompleted ? 'border-emerald-500 bg-emerald-50/30' :
-                    isTargeted ? 'border-emerald-500 shadow-xl shadow-emerald-500/5' : 'border-slate-100 hover:border-emerald-300'
+                    isCompleted && isTargeted
+                      ? 'border-emerald-500 bg-emerald-50/30 shadow-xl shadow-emerald-500/5'
+                      : isCompleted
+                      ? 'border-emerald-500 bg-emerald-50/30'
+                      : isTargeted
+                      ? 'border-emerald-500 shadow-xl shadow-emerald-500/5'
+                      : 'border-slate-100 hover:border-emerald-300'
                   }`}
                 >
                   <div className="mb-6">
