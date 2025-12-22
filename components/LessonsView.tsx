@@ -81,13 +81,14 @@ const ROADMAP_MODULES: (LessonModule & { levelBench: string })[] = [
 interface LessonsViewProps {
   customModules: LessonModule[];
   onSaveCustomModule: (mod: LessonModule) => void;
-  onStartLesson: (prompt: string) => void;
+  onStartLesson: (prompt: string, customMode?: any, submoduleId?: string) => void;
   onStartQuiz: (title: string, description: string, questions?: any[]) => void;
   selectedTopics: string[];
   onToggleTopic: (topicId: string) => void;
+  lessonsCompleted: string[];
 }
 
-const LessonsView: React.FC<LessonsViewProps> = ({ customModules, onSaveCustomModule, onStartLesson, onStartQuiz, selectedTopics, onToggleTopic }) => {
+const LessonsView: React.FC<LessonsViewProps> = ({ customModules, onSaveCustomModule, onStartLesson, onStartQuiz, selectedTopics, onToggleTopic, lessonsCompleted }) => {
   const [selectedModule, setSelectedModule] = useState<LessonModule | null>(null);
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
 
@@ -132,17 +133,26 @@ const LessonsView: React.FC<LessonsViewProps> = ({ customModules, onSaveCustomMo
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {selectedModule.submodules.map((sub) => {
               const isTargeted = selectedTopics.includes(sub.id);
+              const isCompleted = lessonsCompleted.includes(sub.id);
               return (
                 <div
                   key={sub.id}
                   className={`group p-6 bg-white border rounded-[2.5rem] text-left transition-all flex flex-col justify-between ${
+                    isCompleted ? 'border-emerald-500 bg-emerald-50/30' :
                     isTargeted ? 'border-emerald-500 shadow-xl shadow-emerald-500/5' : 'border-slate-100 hover:border-emerald-300'
                   }`}
                 >
                   <div className="mb-6">
                     <div className="flex justify-between items-start mb-4">
-                      <h3 className="font-black text-lg text-slate-800 group-hover:text-emerald-600 leading-tight">{sub.title}</h3>
-                      <button 
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-black text-lg text-slate-800 group-hover:text-emerald-600 leading-tight">{sub.title}</h3>
+                        {isCompleted && (
+                          <span className="bg-emerald-500 text-white text-[8px] font-black uppercase tracking-wider px-2 py-1 rounded-full">
+                            Concluído
+                          </span>
+                        )}
+                      </div>
+                      <button
                         onClick={() => onToggleTopic(sub.id)}
                         className={`p-2 rounded-xl transition-all ${
                           isTargeted ? 'bg-emerald-500 text-white shadow-lg' : 'bg-slate-50 text-slate-400 hover:bg-emerald-50 hover:text-emerald-500'
@@ -159,13 +169,17 @@ const LessonsView: React.FC<LessonsViewProps> = ({ customModules, onSaveCustomMo
                       </div>
                     )}
                   </div>
-                  
+
                   <div className="flex flex-col gap-2">
                     <button
-                      onClick={() => onStartLesson(sub.prompt)}
-                      className="w-full bg-slate-900 group-hover:bg-emerald-600 text-white py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                      onClick={() => onStartLesson(sub.prompt, undefined, sub.id)}
+                      className={`w-full py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
+                        isCompleted
+                          ? 'bg-emerald-600 text-white'
+                          : 'bg-slate-900 group-hover:bg-emerald-600 text-white'
+                      }`}
                     >
-                      Praticar Chat <ChevronRight size={14} />
+                      {isCompleted ? 'Praticar Novamente' : 'Praticar Chat'} <ChevronRight size={14} />
                     </button>
                   </div>
                 </div>
