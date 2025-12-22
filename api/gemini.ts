@@ -58,7 +58,7 @@ function getGeminiClient() {
 async function handleDictionaryDefinition(word: string) {
   const ai = getGeminiClient();
   const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash-preview-05-20',
+    model: 'gemini-2.5-flash',
     contents: [{ role: 'user', parts: [{ text: `Translate and define the following English word into Brazilian Portuguese: "${word}"` }] }],
     config: {
       systemInstruction: SYSTEM_INSTRUCTIONS.DICTIONARY,
@@ -97,7 +97,7 @@ async function handleDictionaryDefinition(word: string) {
 async function handleCheckGrammar(text: string, difficulty: string) {
   const ai = getGeminiClient();
   const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash-preview-05-20',
+    model: 'gemini-2.5-flash',
     contents: [{ role: 'user', parts: [{ text: `User input: "${text}"\nDifficulty: ${difficulty}` }] }],
     config: {
       systemInstruction: SYSTEM_INSTRUCTIONS.CORRECTION_ENGINE,
@@ -141,7 +141,7 @@ async function handleAnalyzeMemory(content: string, isImage: boolean) {
   }
 
   const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash-preview-05-20',
+    model: 'gemini-2.5-flash',
     contents: [{ role: 'user', parts }],
     config: {
       systemInstruction: SYSTEM_INSTRUCTIONS.IMPORT_ANALYSIS,
@@ -176,7 +176,7 @@ async function handleAnalyzeSession(history: { role: string; content: string }[]
   const conversationText = history.map(h => `${h.role}: ${h.content}`).join('\n');
 
   const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash-preview-05-20',
+    model: 'gemini-2.5-flash',
     contents: [{ role: 'user', parts: [{ text: `Analyze this Portuguese practice session for Chandler:\n${conversationText}` }] }],
     config: {
       systemInstruction: `You are a language learning analyst for Chandler's assistant, Iwry.
@@ -222,7 +222,7 @@ async function handleAnalyzeSession(history: { role: string; content: string }[]
 async function handleGenerateQuiz(topicTitle: string, description: string) {
   const ai = getGeminiClient();
   const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash-preview-05-20',
+    model: 'gemini-2.5-flash',
     contents: [{ role: 'user', parts: [{ text: `Topic: ${topicTitle}. Description: ${description}` }] }],
     config: {
       systemInstruction: SYSTEM_INSTRUCTIONS.QUIZ_GENERATOR,
@@ -244,7 +244,7 @@ async function handleGenerateQuiz(topicTitle: string, description: string) {
 async function handleGenerateCustomModule(request: string) {
   const ai = getGeminiClient();
   const response = await ai.models.generateContent({
-    model: 'gemini-2.5-pro-preview-06-05',
+    model: 'gemini-2.5-pro',
     contents: [{ role: 'user', parts: [{ text: `Create a custom Portuguese learning module for: "${request}".
     It must include 2 submodules. Each submodule needs learning milestones and a 3-question unit test.` }] }],
     config: {
@@ -280,7 +280,7 @@ async function handleChatResponse(
   }));
 
   const isFlashMode = mode === 'TEXT_MODE' || mode === 'QUICK_HELP';
-  const modelName = isFlashMode ? 'gemini-2.5-flash-preview-05-20' : 'gemini-2.5-pro-preview-06-05';
+  const modelName = isFlashMode ? 'gemini-2.5-flash' : 'gemini-2.5-pro';
   const thinkingBudget = isFlashMode ? 0 : 16000;
 
   const beginnerTranslationRule = difficulty === 'BEGINNER'
@@ -345,7 +345,7 @@ async function handleTextToSpeech(text: string) {
 async function handleTranscribeAudio(audioBase64: string) {
   const ai = getGeminiClient();
   const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash-preview-05-20',
+    model: 'gemini-2.5-flash',
     contents: {
       parts: [
         { text: "Transcribe this audio. Only the text." },
