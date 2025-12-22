@@ -68,6 +68,14 @@ const App: React.FC = () => {
   const [activeQuizTopic, setActiveQuizTopic] = useState<{title: string, description: string, questions?: any[]} | null>(null);
   const [newlyEarnedBadgeIds, setNewlyEarnedBadgeIds] = useState<string[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null);
+  const [activeSubmoduleId, setActiveSubmoduleId] = useState<string | null>(null);
+
+  // Track active learning modes for practice minutes
+  const TRACKED_MODES = [
+    AppMode.CHAT, AppMode.TEXT_MODE, AppMode.LIVE_VOICE,
+    AppMode.LESSONS, AppMode.QUIZ, AppMode.REVIEW_SESSION
+  ];
 
   // Check database setup status
   useEffect(() => {
@@ -193,6 +201,51 @@ const App: React.FC = () => {
     localStorage.setItem('fala_comigo_progress', JSON.stringify(progress));
   }, [progress]);
 
+  // Track practice minutes when entering/leaving tracked modes
+  useEffect(() => {
+    if (TRACKED_MODES.includes(mode)) {
+      // Entering a tracked mode - start timer
+      if (!sessionStartTime) {
+        setSessionStartTime(new Date());
+      }
+    } else if (sessionStartTime) {
+      // Leaving a tracked mode - calculate and save minutes
+      const minutes = Math.floor((Date.now() - sessionStartTime.getTime()) / 60000);
+      if (minutes > 0) {
+        setProgress(prev => ({
+          ...prev,
+          totalPracticeMinutes: prev.totalPracticeMinutes + minutes
+        }));
+      }
+      setSessionStartTime(null);
+    }
+  }, [mode]);
+
+  // Save practice minutes before page unload to prevent data loss
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (sessionStartTime && TRACKED_MODES.includes(mode)) {
+        const minutes = Math.floor((Date.now() - sessionStartTime.getTime()) / 60000);
+        if (minutes > 0) {
+          // Synchronously update localStorage before page closes
+          const savedProgress = localStorage.getItem('fala_comigo_progress');
+          if (savedProgress) {
+            try {
+              const parsed = JSON.parse(savedProgress);
+              parsed.totalPracticeMinutes = (parsed.totalPracticeMinutes || 0) + minutes;
+              localStorage.setItem('fala_comigo_progress', JSON.stringify(parsed));
+            } catch (e) {
+              console.error('Failed to save practice minutes on unload', e);
+            }
+          }
+        }
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [sessionStartTime, mode]);
+
   useEffect(() => {
     const checkBadges = () => {
       let updated = false;
@@ -285,9 +338,10 @@ const App: React.FC = () => {
     setProgress(prev => ({ ...prev, difficulty: diff, level: levelMap[diff] || prev.level }));
   };
 
-  const startLesson = (prompt: string, customMode: AppMode = AppMode.CHAT) => {
+  const startLesson = (prompt: string, customMode: AppMode = AppMode.CHAT, submoduleId?: string) => {
     setMessages([]);
     setMode(customMode);
+    setActiveSubmoduleId(submoduleId || null);
     handleUserMessage({
       role: 'user',
       content: prompt.startsWith('I want to') ? prompt : `Quero começar a aula: ${prompt}`
@@ -304,6 +358,7 @@ const App: React.FC = () => {
     const currentMode = mode;
     const currentMessages = [...messages];
     const currentDifficulty = progress.difficulty;
+    const currentSubmoduleId = activeSubmoduleId;
 
     try {
       const analysis: SessionAnalysis = await analyzeSession(history);
@@ -325,11 +380,26 @@ const App: React.FC = () => {
           }
         });
 
-        const today = new Date().toDateString();
-        const last = new Date(prev.lastSessionDate).toDateString();
+        // Calculate streak based on consecutive days (using UTC for timezone consistency)
+        const today = new Date();
+        const lastSession = new Date(prev.lastSessionDate);
+
+        // Normalize to UTC date only (no time) for consistent timezone handling
+        const todayDateUTC = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
+        const lastDateUTC = Date.UTC(lastSession.getUTCFullYear(), lastSession.getUTCMonth(), lastSession.getUTCDate());
+
+        const diffDays = Math.floor((todayDateUTC - lastDateUTC) / (1000 * 60 * 60 * 24));
+
         let newStreak = prev.streak;
-        if (today !== last) {
-           newStreak += 1;
+        if (diffDays === 0) {
+          // Same day - no change
+          newStreak = prev.streak;
+        } else if (diffDays === 1) {
+          // Yesterday - increment
+          newStreak = prev.streak + 1;
+        } else {
+          // Missed days - reset
+          newStreak = 1;
         }
 
         const newLog: ChatSessionLog = {
@@ -342,6 +412,12 @@ const App: React.FC = () => {
           difficulty: currentDifficulty
         };
 
+        // Track lesson completion if we have an active submodule
+        let updatedLessonsCompleted = prev.lessonsCompleted;
+        if (currentSubmoduleId && !prev.lessonsCompleted.includes(currentSubmoduleId)) {
+          updatedLessonsCompleted = [...prev.lessonsCompleted, currentSubmoduleId];
+        }
+
         return {
           ...prev,
           vocabulary: updatedVocab,
@@ -349,10 +425,12 @@ const App: React.FC = () => {
           sessionCount: prev.sessionCount + 1,
           lastSessionDate: new Date(),
           streak: newStreak,
+          lessonsCompleted: updatedLessonsCompleted,
           sessionLogs: [newLog, ...(prev.sessionLogs || [])].slice(0, 30)
         };
       });
 
+      setActiveSubmoduleId(null);
       setLastAnalysis(analysis);
     } catch (err) {
       console.error("Analysis failed", err);
@@ -447,7 +525,7 @@ const App: React.FC = () => {
       case AppMode.IMPORT_MEMORY:
         return <MemoryImportView onImport={syncExternalMemory} />;
       case AppMode.LESSONS:
-        return <LessonsView customModules={progress.generatedModules} onSaveCustomModule={handleSaveCustomModule} onStartLesson={startLesson} onStartQuiz={startQuiz} selectedTopics={progress.selectedTopics} onToggleTopic={toggleTopicFocus} />;
+        return <LessonsView customModules={progress.generatedModules} onSaveCustomModule={handleSaveCustomModule} onStartLesson={startLesson} onStartQuiz={startQuiz} selectedTopics={progress.selectedTopics} onToggleTopic={toggleTopicFocus} lessonsCompleted={progress.lessonsCompleted} />;
       case AppMode.QUIZ:
         return activeQuizTopic ? <QuizView topic={activeQuizTopic} onComplete={() => setMode(AppMode.LESSONS)} /> : <DashboardView progress={progress} setMode={setMode} onStartLesson={startLesson} newlyEarnedBadgeIds={newlyEarnedBadgeIds} clearNewlyEarned={() => setNewlyEarnedBadgeIds([])} />;
       case AppMode.CORRECTION_LIBRARY:

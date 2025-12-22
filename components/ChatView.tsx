@@ -1,16 +1,16 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { AppMode, Message, DifficultyLevel } from '../types';
-import { 
-  Send, 
-  Mic, 
-  Volume2, 
-  Loader2, 
-  MapPin, 
-  Utensils, 
-  Sparkles, 
-  LogOut, 
-  Image as ImageIcon, 
+import {
+  Send,
+  Mic,
+  Volume2,
+  Loader2,
+  MapPin,
+  Utensils,
+  Sparkles,
+  LogOut,
+  Image as ImageIcon,
   Users,
   Beer,
   Info,
@@ -26,9 +26,92 @@ import {
   Store,
   Theater,
   Stethoscope,
-  Plane
+  Plane,
+  Coffee
 } from 'lucide-react';
 import { generateChatResponse, textToSpeech, transcribeAudio, decodeAudioData } from '../services/geminiService';
+
+// Scenario definitions for conversation practice
+const SCENARIOS = [
+  {
+    id: 'bakery',
+    icon: 'Coffee',
+    label: 'Na Padaria',
+    prompt: 'I just walked into a Brazilian bakery. Help me order a pão de queijo and cafezinho.',
+    levels: ['BEGINNER', 'INTERMEDIATE']
+  },
+  {
+    id: 'ordering-food',
+    icon: 'Utensils',
+    label: 'Pedindo Comida',
+    prompt: 'I am at a restaurant in São Paulo. Help me order a meal and ask about the menu.',
+    levels: ['BEGINNER', 'INTERMEDIATE', 'ADVANCED']
+  },
+  {
+    id: 'directions',
+    icon: 'MapPin',
+    label: 'Pedindo Direções',
+    prompt: 'I am lost in Rio de Janeiro. Help me ask for directions to Copacabana beach.',
+    levels: ['BEGINNER', 'INTERMEDIATE', 'ADVANCED']
+  },
+  {
+    id: 'meeting-someone',
+    icon: 'Users',
+    label: 'Conhecendo Alguém',
+    prompt: 'I just met a Brazilian at a party. Help me introduce myself and have a casual conversation.',
+    levels: ['BEGINNER', 'INTERMEDIATE']
+  },
+  {
+    id: 'at-office',
+    icon: 'Briefcase',
+    label: 'No Escritório',
+    prompt: 'I am starting my first day at a Brazilian office. Help me interact with my new colleagues.',
+    levels: ['INTERMEDIATE', 'ADVANCED']
+  },
+  {
+    id: 'business-meeting',
+    icon: 'Users',
+    label: 'Reunião de Negócios',
+    prompt: 'I am leading a business meeting with Brazilian partners. Help me conduct the meeting professionally.',
+    levels: ['ADVANCED']
+  },
+  {
+    id: 'medical',
+    icon: 'Stethoscope',
+    label: 'Consulta Médica',
+    prompt: 'I need to visit a doctor in Brazil. Help me describe my symptoms and understand the diagnosis.',
+    levels: ['INTERMEDIATE', 'ADVANCED']
+  },
+  {
+    id: 'airport',
+    icon: 'Plane',
+    label: 'No Aeroporto',
+    prompt: 'I am at the São Paulo airport. Help me check in for my flight and go through customs.',
+    levels: ['BEGINNER', 'INTERMEDIATE', 'ADVANCED']
+  }
+];
+
+// Icon map for scenario icons - more maintainable than switch statement
+const SCENARIO_ICON_MAP: Record<string, typeof Sparkles> = {
+  'Coffee': Coffee,
+  'Utensils': Utensils,
+  'MapPin': MapPin,
+  'Users': Users,
+  'Briefcase': Briefcase,
+  'Stethoscope': Stethoscope,
+  'Plane': Plane,
+};
+
+const getScenarioIcon = (iconName: string) => {
+  return SCENARIO_ICON_MAP[iconName] || Sparkles;
+};
+
+// Difficulty level labels for display
+const DIFFICULTY_LABELS: Record<DifficultyLevel, string> = {
+  [DifficultyLevel.BEGINNER]: 'Iniciante',
+  [DifficultyLevel.INTERMEDIATE]: 'Intermediário',
+  [DifficultyLevel.ADVANCED]: 'Avançado',
+};
 
 interface ChatViewProps {
   mode: AppMode;
@@ -196,6 +279,41 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, diffi
           )}
         </div>
       </div>
+
+      {/* SCENARIOS DROPDOWN PANEL */}
+      {showScenarios && !isWhatsApp && (
+        <div className="absolute top-16 left-0 right-0 z-50 bg-white border-b border-slate-200 shadow-xl animate-in slide-in-from-top-2 duration-300">
+          <div className="p-4 sm:p-6 max-w-4xl mx-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest">Escolha um Cenário</h4>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Nível: {DIFFICULTY_LABELS[difficulty]}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {SCENARIOS
+                .filter(scenario => scenario.levels.includes(difficulty))
+                .map(scenario => {
+                  const IconComponent = getScenarioIcon(scenario.icon);
+                  return (
+                    <button
+                      key={scenario.id}
+                      onClick={() => handleSend(scenario.prompt)}
+                      className="flex flex-col items-center gap-2 p-4 bg-slate-50 hover:bg-emerald-50 border border-slate-100 hover:border-emerald-300 rounded-2xl transition-all group"
+                    >
+                      <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-slate-400 group-hover:text-emerald-600 shadow-sm transition-colors">
+                        <IconComponent size={20} />
+                      </div>
+                      <span className="text-xs font-bold text-slate-600 group-hover:text-emerald-700 text-center leading-tight">
+                        {scenario.label}
+                      </span>
+                    </button>
+                  );
+                })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* WHATSAPP DOODLE PATTERN */}
       {isWhatsApp && (

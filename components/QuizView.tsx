@@ -70,7 +70,7 @@ const QuizView: React.FC<QuizViewProps> = ({ topic, onComplete }) => {
         <div className="w-40 h-40 bg-emerald-100 text-emerald-600 rounded-[3rem] flex items-center justify-center mx-auto shadow-inner mb-8 rotate-3">
           <Trophy size={80} />
         </div>
-        <h2 className="text-4xl font-black text-slate-900 mb-4">Muinto Bem!</h2>
+        <h2 className="text-4xl font-black text-slate-900 mb-4">Muito Bem!</h2>
         <p className="text-slate-500 text-lg mb-8 max-w-sm mx-auto">
           Você acertou <span className="text-emerald-600 font-bold">{score} de {questions.length}</span> questões sobre {topic.title}.
         </p>
@@ -143,7 +143,7 @@ const QuizView: React.FC<QuizViewProps> = ({ topic, onComplete }) => {
           {showResult && (
             <div className="animate-in slide-in-from-top-4 duration-500 space-y-6 pt-4">
               <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
-                <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Exclicação do Iwry</p>
+                <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Explicação do Iwry</p>
                 <p className="text-slate-600 leading-relaxed italic">{currentQ.explanation}</p>
               </div>
               <button
