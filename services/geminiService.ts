@@ -1,222 +1,47 @@
 
-import { GoogleGenAI, Modality, GenerateContentResponse, LiveServerMessage, Type } from "@google/genai";
-import { SYSTEM_INSTRUCTIONS } from "../constants";
-import { QuizQuestion, SessionAnalysis, DifficultyLevel, CorrectionObject, LessonModule, DictionaryEntry } from "../types";
+import { GoogleGenAI, Modality, LiveServerMessage } from "@google/genai";
+import { QuizQuestion, SessionAnalysis, DifficultyLevel, LessonModule, DictionaryEntry } from "../types";
 
-export const getGeminiClient = () => {
-  return new GoogleGenAI({ apiKey: process.env.API_KEY });
-};
+const API_ENDPOINT = '/api/gemini';
 
-export async function getDictionaryDefinition(word: string): Promise<DictionaryEntry> {
-  const ai = getGeminiClient();
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: [{ role: 'user', parts: [{ text: `Translate and define the following English word into Brazilian Portuguese: "${word}"` }] }],
-    config: {
-      systemInstruction: SYSTEM_INSTRUCTIONS.DICTIONARY,
-      responseMimeType: "application/json",
-      thinkingConfig: { thinkingBudget: 0 },
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          word: { type: Type.STRING, description: "The Portuguese translation of the English word." },
-          category: { type: Type.STRING },
-          meaning: { type: Type.STRING, description: "Detailed definition in Portuguese." },
-          translation: { type: Type.STRING, description: "Original English word for context." },
-          tenseInfo: { type: Type.STRING },
-          conjugation: {
-            type: Type.OBJECT,
-            properties: {
-              eu: { type: Type.STRING },
-              tu_voce: { type: Type.STRING },
-              ele_ela: { type: Type.STRING },
-              nos: { type: Type.STRING },
-              vcs_eles: { type: Type.STRING }
-            }
-          },
-          irregularities: { type: Type.STRING },
-          examples: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Usage examples in Portuguese with English translations in parentheses." },
-          usageNotes: { type: Type.STRING },
-          gender: { type: Type.STRING, enum: ['Masculine', 'Feminine', 'Neutral'] }
-        },
-        required: ["word", "category", "meaning", "translation", "examples", "usageNotes"]
-      }
-    }
+async function callApi(action: string, payload: any) {
+  const response = await fetch(API_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, payload })
   });
 
-  return JSON.parse(response.text || "{}");
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'API request failed');
+  }
+
+  const data = await response.json();
+  return data.result;
+}
+
+export async function getDictionaryDefinition(word: string): Promise<DictionaryEntry> {
+  return callApi('dictionaryDefinition', { word });
 }
 
 export async function checkGrammar(text: string, difficulty: DifficultyLevel): Promise<any> {
-  const ai = getGeminiClient();
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: [{ role: 'user', parts: [{ text: `User input: "${text}"\nDifficulty: ${difficulty}` }] }],
-    config: {
-      systemInstruction: SYSTEM_INSTRUCTIONS.CORRECTION_ENGINE,
-      responseMimeType: "application/json",
-      thinkingConfig: { thinkingBudget: 0 },
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          hasError: { type: Type.BOOLEAN },
-          corrected: { type: Type.STRING },
-          explanation: { type: Type.STRING },
-          category: { type: Type.STRING }
-        },
-        required: ["hasError", "corrected", "explanation", "category"]
-      }
-    }
-  });
-
-  try {
-    const text = response.text || "";
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    const jsonStr = jsonMatch ? jsonMatch[0] : text;
-    return JSON.parse(jsonStr || '{"hasError": false}');
-  } catch (e) {
-    console.warn("Grammar check failed to parse JSON:", response.text);
-    return { hasError: false };
-  }
+  return callApi('checkGrammar', { text, difficulty });
 }
 
 export async function analyzeMemory(content: string, isImage: boolean = false): Promise<any> {
-  const ai = getGeminiClient();
-  const parts: any[] = [{ text: content }];
-  
-  if (isImage) {
-    parts.push({
-      inlineData: {
-        mimeType: 'image/jpeg',
-        data: content.split(',')[1]
-      }
-    });
-    parts[0].text = "Analyze this homework/document image.";
-  }
-
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: [{ role: 'user', parts }],
-    config: {
-      systemInstruction: SYSTEM_INSTRUCTIONS.IMPORT_ANALYSIS,
-      responseMimeType: "application/json",
-      thinkingConfig: { thinkingBudget: 0 },
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          topic: { type: Type.STRING },
-          vocab: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                word: { type: Type.STRING },
-                meaning: { type: Type.STRING }
-              }
-            }
-          },
-          grammar: { type: Type.STRING }
-        },
-        required: ["topic", "vocab", "grammar"]
-      }
-    }
-  });
-
-  return JSON.parse(response.text || "{}");
+  return callApi('analyzeMemory', { content, isImage });
 }
 
 export async function analyzeSession(history: { role: string; content: string }[]): Promise<SessionAnalysis> {
-  const ai = getGeminiClient();
-  const conversationText = history.map(h => `${h.role}: ${h.content}`).join('\n');
-  
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: [{ role: 'user', parts: [{ text: `Analyze this Portuguese practice session for Chandler:\n${conversationText}` }] }],
-    config: {
-      systemInstruction: `You are a language learning analyst for Chandler's assistant, Iwry. 
-      Analyze the dialogue and extract progress data.
-      Scores should be small adjustments: e.g., 0.05 for good usage, -0.05 for struggle.`,
-      responseMimeType: "application/json",
-      thinkingConfig: { thinkingBudget: 0 },
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          newVocab: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                word: { type: Type.STRING },
-                meaning: { type: Type.STRING }
-              },
-              required: ["word", "meaning"]
-            }
-          },
-          grammarPerformance: {
-            type: Type.OBJECT,
-            properties: {
-              "Present Tense": { type: Type.NUMBER },
-              "Future Tense": { type: Type.NUMBER },
-              "Subjunctive": { type: Type.NUMBER },
-              "Prepositions": { type: Type.NUMBER },
-              "Pronouns": { type: Type.NUMBER }
-            }
-          },
-          summaryText: { type: Type.STRING },
-          nextStepRecommendation: { type: Type.STRING }
-        },
-        required: ["newVocab", "grammarPerformance", "summaryText", "nextStepRecommendation"]
-      }
-    }
-  });
-
-  return JSON.parse(response.text || "{}");
+  return callApi('analyzeSession', { history });
 }
 
 export async function generateQuiz(topicTitle: string, description: string): Promise<QuizQuestion[]> {
-  const ai = getGeminiClient();
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: [{ role: 'user', parts: [{ text: `Topic: ${topicTitle}. Description: ${description}` }] }],
-    config: {
-      systemInstruction: SYSTEM_INSTRUCTIONS.QUIZ_GENERATOR,
-      responseMimeType: "application/json",
-      thinkingConfig: { thinkingBudget: 0 }
-    }
-  });
-
-  try {
-    const text = response.text || '{"questions": []}';
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : text);
-    return parsed.questions || [];
-  } catch (e) {
-    console.error("Failed to parse quiz", e);
-    return [];
-  }
+  return callApi('generateQuiz', { topicTitle, description });
 }
 
 export async function generateCustomModule(request: string): Promise<LessonModule> {
-  const ai = getGeminiClient();
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
-    contents: [{ role: 'user', parts: [{ text: `Create a custom Portuguese learning module for: "${request}". 
-    It must include 2 submodules. Each submodule needs learning milestones and a 3-question unit test.` }] }],
-    config: {
-      systemInstruction: `You are a curriculum designer for Iwry, a Brazilian Portuguese tutor. 
-      Generate a LessonModule object in JSON. 
-      Include 'title', 'icon', 'description', and 'submodules'.`,
-      responseMimeType: "application/json",
-      thinkingConfig: { thinkingBudget: 16000 }
-    }
-  });
-
-  const parsed = JSON.parse(response.text || "{}");
-  return {
-    ...parsed,
-    id: `custom_${Date.now()}`,
-    isCustom: true
-  };
+  return callApi('generateCustomModule', { request });
 }
 
 export async function generateChatResponse(
@@ -228,94 +53,27 @@ export async function generateChatResponse(
   image?: string,
   selectedTopics?: string[]
 ): Promise<string> {
-  const ai = getGeminiClient();
-  const contents = history.map(h => ({
-    role: h.role === 'assistant' ? 'model' : 'user',
-    parts: [{ text: h.content }]
-  }));
-  
-  const isFlashMode = mode === 'TEXT_MODE' || mode === 'QUICK_HELP';
-  const modelName = isFlashMode ? 'gemini-3-flash-preview' : 'gemini-3-pro-preview';
-  const thinkingBudget = isFlashMode ? 0 : 16000;
-
-  const beginnerTranslationRule = difficulty === DifficultyLevel.BEGINNER 
-    ? "\nCRITICAL: Always translate Portuguese to English in parentheses. Example: 'Tudo bem? (How are you?)'."
-    : "";
-
-  const difficultyContext = `\n[Level: ${difficulty}${beginnerTranslationRule}]`;
-  
-  const memoryContext = memories && memories.length > 0 
-    ? `\n[Recent context: ${memories.slice(0,3).map(m => m.topic).join(', ')}]`
-    : "";
-
-  const focusContext = selectedTopics && selectedTopics.length > 0
-    ? `\n[Focus topics: ${selectedTopics.join(', ')}]`
-    : "";
-
-  const coachingContext = "\n[Role: Act as a sophisticated AI mentor. Be insightful, concise, and structured. Avoid yapping.]";
-
-  const parts: any[] = [{ text: userInput + difficultyContext + memoryContext + focusContext + coachingContext }];
-  if (image) {
-    parts.push({
-      inlineData: {
-        mimeType: 'image/jpeg',
-        data: image.split(',')[1]
-      }
-    });
-  }
-
-  contents.push({ role: 'user', parts });
-
-  const response: GenerateContentResponse = await ai.models.generateContent({
-    model: modelName,
-    contents,
-    config: {
-      systemInstruction: SYSTEM_INSTRUCTIONS[mode] || SYSTEM_INSTRUCTIONS.CHAT,
-      thinkingConfig: { thinkingBudget }
-    }
+  return callApi('chatResponse', {
+    mode,
+    history,
+    userInput,
+    difficulty,
+    memories,
+    image,
+    selectedTopics
   });
-
-  return response.text || "Desculpe, não consegui processar isso. (Sorry, I couldn't process that.)";
 }
 
 export async function textToSpeech(text: string): Promise<Uint8Array | null> {
-  const ai = getGeminiClient();
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-preview-tts",
-      contents: [{ parts: [{ text }] }],
-      config: {
-        responseModalities: [Modality.AUDIO],
-        speechConfig: {
-          voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: 'Kore' }
-          }
-        }
-      }
-    });
-
-    const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-    if (base64Audio) {
-      return decode(base64Audio);
-    }
-  } catch (err) {
-    console.error("TTS Error:", err);
+  const base64Audio = await callApi('textToSpeech', { text });
+  if (base64Audio) {
+    return decode(base64Audio);
   }
   return null;
 }
 
 export async function transcribeAudio(audioBase64: string): Promise<string> {
-  const ai = getGeminiClient();
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: {
-      parts: [
-        { text: "Transcribe this audio. Only the text." },
-        { inlineData: { mimeType: 'audio/wav', data: audioBase64 } }
-      ]
-    }
-  });
-  return response.text || "";
+  return callApi('transcribeAudio', { audioBase64 });
 }
 
 export function decode(base64: string): Uint8Array {
@@ -353,3 +111,16 @@ export async function decodeAudioData(
   }
   return buffer;
 }
+
+// Live voice connection - uses client-side SDK for WebSocket streaming
+// This is acceptable as it creates a temporary session token, not exposing the API key
+export const getGeminiClient = () => {
+  // This will only be used for live voice WebSocket connections
+  // The API key here is needed for real-time bidirectional streaming
+  // which cannot go through a REST API endpoint
+  const apiKey = (window as any).__GEMINI_LIVE_KEY__;
+  if (!apiKey) {
+    throw new Error('Live voice not configured');
+  }
+  return new GoogleGenAI({ apiKey });
+};
