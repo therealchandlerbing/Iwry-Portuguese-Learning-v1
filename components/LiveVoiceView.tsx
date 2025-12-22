@@ -28,11 +28,20 @@ const LiveVoiceView: React.FC<LiveVoiceViewProps> = ({ memories, difficulty }) =
     try {
       // Fetch API key from secure endpoint
       const token = localStorage.getItem('auth_token');
+      if (!token) {
+        setError("Você precisa estar autenticado para usar o recurso de voz.");
+        setStatus('idle');
+        return;
+      }
+
       const keyResponse = await fetch('/api/live-key', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
       if (!keyResponse.ok) {
+        if (keyResponse.status === 401) {
+          throw new Error('Authentication failed');
+        }
         throw new Error('Failed to initialize voice connection');
       }
 
@@ -128,14 +137,20 @@ const LiveVoiceView: React.FC<LiveVoiceViewProps> = ({ memories, difficulty }) =
       });
 
       sessionRef.current = await sessionPromise;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Live voice error:', err);
-      if (err.message === 'Failed to initialize voice connection') {
-        setError("Não foi possível conectar ao serviço de voz. Tente novamente mais tarde.");
-      } else if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        setError("Não foi possível acessar seu microfone. Verifique as permissões.");
+      if (err instanceof Error) {
+        if (err.message === 'Authentication failed') {
+          setError("Sua sessão expirou. Por favor, faça login novamente.");
+        } else if (err.message === 'Failed to initialize voice connection') {
+          setError("Não foi possível conectar ao serviço de voz. Tente novamente mais tarde.");
+        } else if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          setError("Não foi possível acessar seu microfone. Verifique as permissões.");
+        } else {
+          setError("Ocorreu um erro. Verifique sua conexão e tente novamente.");
+        }
       } else {
-        setError("Ocorreu um erro. Verifique sua conexão e tente novamente.");
+        setError("Ocorreu um erro inesperado. Tente novamente.");
       }
       setStatus('idle');
     }

@@ -29,12 +29,12 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
   const [isChartMounted, setIsChartMounted] = useState(false);
 
   // Delay chart rendering to ensure DOM is ready and prevent MutationObserver errors
+  // Using requestAnimationFrame ensures the browser has completed layout before mounting the chart
   useEffect(() => {
-    const timer = setTimeout(() => setIsChartMounted(true), 100);
-    return () => {
-      clearTimeout(timer);
-      setIsChartMounted(false);
-    };
+    const frameId = requestAnimationFrame(() => {
+      setIsChartMounted(true);
+    });
+    return () => cancelAnimationFrame(frameId);
   }, []);
 
   const labels = useMemo(() => {
