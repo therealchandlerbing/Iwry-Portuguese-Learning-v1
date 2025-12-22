@@ -34,9 +34,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       });
     } catch (error: any) {
+      console.error('Database connection error:', error);
       return res.status(200).json({
         connected: false,
-        error: error.message
+        error: 'Failed to connect to database'
       });
     }
   }
@@ -89,7 +90,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.error('Setup error:', error);
       return res.status(500).json({
         success: false,
-        error: error.message
+        error: 'Failed to create database tables'
       });
     }
   }

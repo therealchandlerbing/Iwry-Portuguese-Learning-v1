@@ -75,6 +75,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   } catch (error: any) {
     console.error('Registration error:', error);
-    return res.status(500).json({ error: error.message || 'Registration failed' });
+    return res.status(500).json({ error: 'Registration failed. Please try again.' });
   }
 }

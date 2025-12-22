@@ -47,6 +47,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   } catch (error: any) {
     console.error('User check error:', error);
-    return res.status(500).json({ error: error.message || 'Failed to check authentication' });
+    return res.status(500).json({ error: 'Authentication check failed. Please try again.' });
   }
 }

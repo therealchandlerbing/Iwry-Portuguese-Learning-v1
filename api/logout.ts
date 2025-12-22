@@ -28,6 +28,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({ success: true, message: 'Logged out successfully' });
   } catch (error: any) {
     console.error('Logout error:', error);
-    return res.status(500).json({ error: error.message || 'Logout failed' });
+    return res.status(500).json({ error: 'Logout failed. Please try again.' });
   }
 }

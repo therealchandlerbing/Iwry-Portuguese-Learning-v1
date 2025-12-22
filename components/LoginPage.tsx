@@ -119,7 +119,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister }) =>
 
         <div className="mt-6 text-center">
           <p className="text-slate-500 text-sm">
-            Ainda nao tem uma conta?{' '}
+            Ainda não tem uma conta?{' '}
             <button
               onClick={onSwitchToRegister}
               className="text-emerald-600 font-semibold hover:underline"

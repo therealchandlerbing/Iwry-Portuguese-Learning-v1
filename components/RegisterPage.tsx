@@ -185,7 +185,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegister, onSwitchToLogin
 
         <div className="mt-6 text-center">
           <p className="text-slate-500 text-sm">
-            Ja tem uma conta?{' '}
+            Já tem uma conta?{' '}
             <button
               onClick={onSwitchToLogin}
               className="text-emerald-600 font-semibold hover:underline"
