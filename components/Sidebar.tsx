@@ -1,29 +1,31 @@
 
 import React from 'react';
 import { AppMode, UserProgress, DifficultyLevel } from '../types';
-import { 
-  MessageSquare, 
-  Smartphone, 
-  Mic, 
-  BookOpen, 
-  LayoutDashboard, 
-  HelpCircle, 
+import {
+  MessageSquare,
+  Smartphone,
+  Mic,
+  BookOpen,
+  LayoutDashboard,
+  HelpCircle,
   Camera,
   RefreshCw,
-  ChevronRight,
   TrendingUp,
   History,
   FileText,
-  Search
+  Search,
+  LogOut
 } from 'lucide-react';
 
 interface SidebarProps {
   currentMode: AppMode;
   setMode: (mode: AppMode) => void;
   progress: UserProgress;
+  userName?: string;
+  onLogout?: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentMode, setMode, progress }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentMode, setMode, progress, userName = 'User', onLogout }) => {
   const groups = [
     {
       label: 'Learning Modes',
@@ -143,20 +145,28 @@ const Sidebar: React.FC<SidebarProps> = ({ currentMode, setMode, progress }) => 
 
       {/* Profile Section */}
       <div className="p-4 border-t border-slate-800/50 bg-[#0c1222]/50 backdrop-blur-sm">
-        <div className="flex items-center gap-3 p-2 rounded-2xl hover:bg-slate-800/50 transition-all cursor-pointer group">
+        <div className="flex items-center gap-3 p-2 rounded-2xl">
           <div className="relative">
-            <img 
-              src="https://api.dicebear.com/7.x/avataaars/svg?seed=Chandler" 
-              alt="Avatar" 
-              className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 group-hover:border-emerald-500/50 transition-colors" 
+            <img
+              src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(userName)}`}
+              alt="Avatar"
+              className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700"
             />
             <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-[#0f172a] rounded-full shadow-sm" />
           </div>
           <div className="flex-1 overflow-hidden">
-            <p className="text-sm font-black text-slate-200 truncate group-hover:text-white transition-colors">Chandler Bing</p>
+            <p className="text-sm font-black text-slate-200 truncate">{userName}</p>
             <p className="text-[10px] font-bold text-slate-500 truncate uppercase tracking-tight">Estudante {getDifficultyLabel()}</p>
           </div>
-          <ChevronRight size={16} className="text-slate-600 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all" />
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              className="p-2 rounded-xl text-slate-500 hover:text-red-400 hover:bg-slate-800/50 transition-all"
+              title="Sair"
+            >
+              <LogOut size={16} />
+            </button>
+          )}
         </div>
       </div>
 
