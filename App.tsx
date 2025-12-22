@@ -10,7 +10,9 @@ import ImageAnalyzer from './components/ImageAnalyzer';
 import MemoryImportView from './components/MemoryImportView';
 import MobileNav from './components/MobileNav';
 import LoadingScreen from './components/LoadingScreen';
-import EntryScreen from './components/EntryScreen';
+import SetupPage from './components/SetupPage';
+import LoginPage from './components/LoginPage';
+import RegisterPage from './components/RegisterPage';
 import LessonsView from './components/LessonsView';
 import ReviewSessionView from './components/ReviewSessionView';
 import QuizView from './components/QuizView';
@@ -20,6 +22,14 @@ import LearningLogView from './components/LearningLogView';
 import DictionaryView from './components/DictionaryView';
 import { analyzeSession, checkGrammar } from './services/geminiService';
 import { DEFAULT_BADGES } from './constants';
+
+interface AuthUser {
+  id: number;
+  email: string;
+  name: string;
+}
+
+type AuthView = 'login' | 'register';
 
 const INITIAL_PROGRESS: UserProgress = {
   level: 'A1',
@@ -47,22 +57,79 @@ const INITIAL_PROGRESS: UserProgress = {
 
 const App: React.FC = () => {
   const [isAppLoading, setIsAppLoading] = useState(true);
+  const [isDbSetup, setIsDbSetup] = useState(false);
+  const [isCheckingDb, setIsCheckingDb] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authView, setAuthView] = useState<AuthView>('login');
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [mode, setMode] = useState<AppMode>(AppMode.DASHBOARD);
   const [progress, setProgress] = useState<UserProgress>(INITIAL_PROGRESS);
   const [lastAnalysis, setLastAnalysis] = useState<SessionAnalysis | null>(null);
   const [activeQuizTopic, setActiveQuizTopic] = useState<{title: string, description: string, questions?: any[]} | null>(null);
   const [newlyEarnedBadgeIds, setNewlyEarnedBadgeIds] = useState<string[]>([]);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      role: 'assistant',
-      content: "Hi Chandler! I'm Iwry, your Brazilian Portuguese coach. Ready to start your journey to fluency? How can I help you today?",
-      timestamp: new Date()
-    }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
 
+  // Check database setup status
   useEffect(() => {
+    const checkDbSetup = async () => {
+      try {
+        const response = await fetch('/api/setup');
+        const data = await response.json();
+
+        if (data.connected && data.tables?.users && data.tables?.sessions && data.tables?.user_progress) {
+          setIsDbSetup(true);
+        }
+      } catch (error) {
+        console.error('Failed to check database status:', error);
+      } finally {
+        setIsCheckingDb(false);
+      }
+    };
+
+    checkDbSetup();
+  }, []);
+
+  // Check for existing auth token
+  useEffect(() => {
+    const checkAuth = async () => {
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        setIsAppLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/user', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setUser(data.user);
+          setIsAuthenticated(true);
+
+          // Load user progress from localStorage
+          loadProgress();
+        } else {
+          // Invalid token, clear it
+          localStorage.removeItem('auth_token');
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        localStorage.removeItem('auth_token');
+      } finally {
+        setIsAppLoading(false);
+      }
+    };
+
+    if (isDbSetup) {
+      checkAuth();
+    } else if (!isCheckingDb) {
+      setIsAppLoading(false);
+    }
+  }, [isDbSetup, isCheckingDb]);
+
+  const loadProgress = () => {
     const saved = localStorage.getItem('fala_comigo_progress');
     if (saved) {
       try {
@@ -85,12 +152,42 @@ const App: React.FC = () => {
         console.error("Failed to load progress", e);
       }
     }
-    
-    const timer = setTimeout(() => {
-      setIsAppLoading(false);
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, []);
+  };
+
+  const handleLogin = (token: string, userData: AuthUser) => {
+    localStorage.setItem('auth_token', token);
+    setUser(userData);
+    setIsAuthenticated(true);
+    loadProgress();
+
+    // Set initial welcome message with user's name
+    setMessages([{
+      id: '1',
+      role: 'assistant',
+      content: `Hi ${userData.name}! I'm Iwry, your Brazilian Portuguese coach. Ready to start your journey to fluency? How can I help you today?`,
+      timestamp: new Date()
+    }]);
+  };
+
+  const handleLogout = async () => {
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      try {
+        await fetch('/api/logout', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+      } catch (error) {
+        console.error('Logout error:', error);
+      }
+    }
+
+    localStorage.removeItem('auth_token');
+    setUser(null);
+    setIsAuthenticated(false);
+    setMessages([]);
+    setMode(AppMode.DASHBOARD);
+  };
 
   useEffect(() => {
     localStorage.setItem('fala_comigo_progress', JSON.stringify(progress));
@@ -362,14 +459,36 @@ const App: React.FC = () => {
     }
   };
 
-  if (isAppLoading) return <LoadingScreen />;
-  if (!isAuthenticated) return <EntryScreen onEnter={() => setIsAuthenticated(true)} />;
+  if (isAppLoading || isCheckingDb) return <LoadingScreen />;
+
+  // Show setup page if database is not configured
+  if (!isDbSetup) {
+    return <SetupPage onSetupComplete={() => setIsDbSetup(true)} />;
+  }
+
+  // Show login/register if not authenticated
+  if (!isAuthenticated) {
+    if (authView === 'register') {
+      return (
+        <RegisterPage
+          onRegister={handleLogin}
+          onSwitchToLogin={() => setAuthView('login')}
+        />
+      );
+    }
+    return (
+      <LoginPage
+        onLogin={handleLogin}
+        onSwitchToRegister={() => setAuthView('register')}
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen bg-slate-50 overflow-hidden text-slate-900 font-inter">
       <div className="flex flex-1 overflow-hidden h-full">
         <div className="hidden md:block h-full shrink-0">
-          <Sidebar progress={progress} currentMode={mode} setMode={setMode} />
+          <Sidebar progress={progress} currentMode={mode} setMode={setMode} userName={user?.name} onLogout={handleLogout} />
         </div>
         <div className="flex-1 flex flex-col min-w-0 h-full bg-slate-50">
           <Header mode={mode} streak={progress.streak} difficulty={progress.difficulty} setDifficulty={setDifficulty} />
