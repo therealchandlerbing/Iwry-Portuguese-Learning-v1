@@ -10,7 +10,7 @@
 
 **An intelligent, AI-powered language learning platform for mastering Brazilian Portuguese**
 
-[🚀 Features](#-key-features) • [🏗️ Architecture](#️-how-its-built) • [📖 Getting Started](#-getting-started) • [🎯 Learning Modes](#-learning-modes)
+[🚀 Features](#-key-features) • [🏗️ Architecture](#-how-its-built) • [📖 Getting Started](#-getting-started) • [🎯 Learning Modes](#-learning-modes)
 
 </div>
 
@@ -20,7 +20,7 @@
 
 - [What is Fala Comigo?](#-what-is-fala-comigo)
 - [Key Features](#-key-features)
-- [How It's Built](#️-how-its-built)
+- [How It's Built](#-how-its-built)
 - [Application Architecture](#-application-architecture)
 - [Learning Modes](#-learning-modes)
 - [Technology Stack](#-technology-stack)
@@ -456,7 +456,8 @@ Before you begin, you'll need:
 
 **Step 1: Get the code**
 ```bash
-git clone <repository-url>
+# Clone this repository (use the GitHub Clone URL)
+git clone https://github.com/YOUR-USERNAME/Iwry-Portuguese-Learning-v1.git
 cd Iwry-Portuguese-Learning-v1
 ```
 
@@ -716,7 +717,7 @@ You can reset all progress at any time by clearing browser data (LocalStorage).
 **Technical Details:**
 - Input: 16kHz audio sampling
 - Output: 24kHz speech synthesis
-- Voice: "Kore" (Brazilian Portuguese female)
+- Voice: "Zephyr" (Brazilian Portuguese female)
 - Streaming: Real-time audio chunks processed as you speak
 
 </details>
