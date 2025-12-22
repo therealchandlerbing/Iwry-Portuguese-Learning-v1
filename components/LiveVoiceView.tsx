@@ -8,9 +8,10 @@ import { MemoryEntry, DifficultyLevel } from '../types';
 interface LiveVoiceViewProps {
   memories?: MemoryEntry[];
   difficulty: DifficultyLevel;
+  userName?: string;
 }
 
-const LiveVoiceView: React.FC<LiveVoiceViewProps> = ({ memories, difficulty }) => {
+const LiveVoiceView: React.FC<LiveVoiceViewProps> = ({ memories, difficulty, userName = 'Student' }) => {
   const [isActive, setIsActive] = useState(false);
   const [status, setStatus] = useState<'idle' | 'connecting' | 'listening' | 'speaking'>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -128,10 +129,10 @@ const LiveVoiceView: React.FC<LiveVoiceViewProps> = ({ memories, difficulty }) =
           speechConfig: {
             voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } }
           },
-          systemInstruction: `Você é o Iwry, o assistente dedicado de Chandler para aprender Português do Brasil. 
-          O nível de dificuldade atual de Chandler é ${difficulty}. Ajuste sua complexidade de vocabulário e gramática para este nível. 
-          Fale naturalmente em português. Seja encorajador. 
-          ${memories && memories.length > 0 ? `Contexto: Chandler estudou recentemente sobre: ${memories.slice(0, 3).map(m => m.topic).join(', ')}.` : ''} 
+          systemInstruction: `Você é o Iwry, o assistente dedicado de ${userName} para aprender Português do Brasil.
+          O nível de dificuldade atual é ${difficulty}. Ajuste sua complexidade de vocabulário e gramática para este nível.
+          Fale naturalmente em português. Seja encorajador.
+          ${memories && memories.length > 0 ? `Contexto: O aluno estudou recentemente sobre: ${memories.slice(0, 3).map(m => m.topic).join(', ')}.` : ''}
           Mantenha a conversa fluida e divertida.`
         }
       });

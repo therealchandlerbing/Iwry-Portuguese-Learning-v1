@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AppMode, Message, UserProgress, VocabItem, MemoryEntry, SessionAnalysis, DifficultyLevel, CorrectionObject, LessonModule, Badge, ChatSessionLog } from './types';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -20,6 +20,7 @@ import SessionSummaryModal from './components/SessionSummaryModal';
 import CorrectionLibraryView from './components/CorrectionLibraryView';
 import LearningLogView from './components/LearningLogView';
 import DictionaryView from './components/DictionaryView';
+import ErrorBoundary from './components/ErrorBoundary';
 import { analyzeSession, checkGrammar } from './services/geminiService';
 import { DEFAULT_BADGES } from './constants';
 
@@ -36,9 +37,9 @@ const INITIAL_PROGRESS: UserProgress = {
   difficulty: DifficultyLevel.BEGINNER,
   vocabulary: [],
   lessonsCompleted: [],
-  grammarMastery: { 
-    'Present Tense': 0.0, 
-    'Future Tense': 0.0, 
+  grammarMastery: {
+    'Present Tense': 0.0,
+    'Future Tense': 0.0,
     'Subjunctive': 0.0,
     'Prepositions': 0.0,
     'Pronouns': 0.0
@@ -53,6 +54,89 @@ const INITIAL_PROGRESS: UserProgress = {
   sessionCount: 0,
   generatedModules: [],
   badges: DEFAULT_BADGES
+};
+
+// Progress sync interval (5 minutes)
+const SYNC_INTERVAL_MS = 5 * 60 * 1000;
+
+// Sync progress to server
+const syncProgressToServer = async (progress: UserProgress): Promise<boolean> => {
+  const token = localStorage.getItem('auth_token');
+  if (!token) return false;
+
+  try {
+    const response = await fetch('/api/progress', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        progress,
+        clientTimestamp: new Date().toISOString()
+      })
+    });
+
+    return response.ok;
+  } catch (error) {
+    console.error('Failed to sync progress:', error);
+    return false;
+  }
+};
+
+// Load progress from server
+const loadProgressFromServer = async (): Promise<UserProgress | null> => {
+  const token = localStorage.getItem('auth_token');
+  if (!token) return null;
+
+  try {
+    const response = await fetch('/api/progress', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return data.progress;
+    }
+    return null;
+  } catch (error) {
+    console.error('Failed to load progress from server:', error);
+    return null;
+  }
+};
+
+// Merge server progress with local progress (conflict resolution)
+const mergeProgress = (local: UserProgress, server: UserProgress): UserProgress => {
+  const localDate = new Date(local.lastSessionDate).getTime();
+  const serverDate = new Date(server.lastSessionDate).getTime();
+
+  // Merge vocabulary - union of both, keeping higher confidence
+  const vocabMap = new Map<string, VocabItem>();
+  [...local.vocabulary, ...server.vocabulary].forEach(item => {
+    const key = item.word.toLowerCase();
+    const existing = vocabMap.get(key);
+    if (!existing || item.confidence > existing.confidence) {
+      vocabMap.set(key, item);
+    }
+  });
+
+  // Take maximum values for numeric fields
+  const mergedStreak = Math.max(local.streak, server.streak);
+  const mergedSessionCount = Math.max(local.sessionCount, server.sessionCount);
+  const mergedPracticeMinutes = Math.max(local.totalPracticeMinutes, server.totalPracticeMinutes);
+
+  // Use the more recent base, but merge in specific fields
+  const base = serverDate > localDate ? server : local;
+
+  return {
+    ...base,
+    vocabulary: Array.from(vocabMap.values()).slice(-200),
+    streak: mergedStreak,
+    sessionCount: mergedSessionCount,
+    totalPracticeMinutes: mergedPracticeMinutes,
+    lessonsCompleted: [...new Set([...local.lessonsCompleted, ...server.lessonsCompleted])],
+    lastSessionDate: new Date(Math.max(localDate, serverDate))
+  };
 };
 
 const App: React.FC = () => {
@@ -70,6 +154,8 @@ const App: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null);
   const [activeSubmoduleId, setActiveSubmoduleId] = useState<string | null>(null);
+  const syncIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSyncRef = useRef<number>(0);
 
   // Track active learning modes for practice minutes
   const TRACKED_MODES = [
@@ -137,27 +223,60 @@ const App: React.FC = () => {
     }
   }, [isDbSetup, isCheckingDb]);
 
-  const loadProgress = () => {
+  const parseProgressDates = (data: any): UserProgress => {
+    const parsed = { ...data };
+    parsed.lastSessionDate = new Date(parsed.lastSessionDate);
+    parsed.vocabulary = (parsed.vocabulary || []).map((v: any) => ({ ...v, lastPracticed: new Date(v.lastPracticed) }));
+    parsed.memories = (parsed.memories || []).map((m: any) => ({ ...m, date: new Date(m.date) }));
+    parsed.correctionHistory = (parsed.correctionHistory || []).map((c: any) => ({ ...c, timestamp: new Date(c.timestamp) }));
+    parsed.sessionLogs = (parsed.sessionLogs || []).map((log: any) => ({
+      ...log,
+      timestamp: new Date(log.timestamp),
+      messages: log.messages.map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) }))
+    }));
+    if (!parsed.badges) parsed.badges = DEFAULT_BADGES;
+    else {
+      parsed.badges = parsed.badges.map((b: any) => b.earnedDate ? { ...b, earnedDate: new Date(b.earnedDate) } : b);
+    }
+    return parsed;
+  };
+
+  const loadProgress = async () => {
+    let localProgress: UserProgress | null = null;
+
+    // Load from localStorage first
     const saved = localStorage.getItem('fala_comigo_progress');
     if (saved) {
       try {
-        const parsed = JSON.parse(saved);
-        parsed.lastSessionDate = new Date(parsed.lastSessionDate);
-        parsed.vocabulary = (parsed.vocabulary || []).map((v: any) => ({ ...v, lastPracticed: new Date(v.lastPracticed) }));
-        parsed.memories = (parsed.memories || []).map((m: any) => ({ ...m, date: new Date(m.date) }));
-        parsed.correctionHistory = (parsed.correctionHistory || []).map((c: any) => ({ ...c, timestamp: new Date(c.timestamp) }));
-        parsed.sessionLogs = (parsed.sessionLogs || []).map((log: any) => ({
-          ...log,
-          timestamp: new Date(log.timestamp),
-          messages: log.messages.map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) }))
-        }));
-        if (!parsed.badges) parsed.badges = DEFAULT_BADGES;
-        else {
-          parsed.badges = parsed.badges.map((b: any) => b.earnedDate ? { ...b, earnedDate: new Date(b.earnedDate) } : b);
-        }
-        setProgress(parsed);
+        localProgress = parseProgressDates(JSON.parse(saved));
       } catch (e) {
-        console.error("Failed to load progress", e);
+        console.error("Failed to parse local progress", e);
+      }
+    }
+
+    // Try to load from server and merge
+    try {
+      const serverProgress = await loadProgressFromServer();
+      if (serverProgress) {
+        const parsedServer = parseProgressDates(serverProgress);
+        if (localProgress) {
+          // Merge local and server progress
+          const merged = mergeProgress(localProgress, parsedServer);
+          setProgress(merged);
+          // Sync merged data back to server
+          syncProgressToServer(merged);
+        } else {
+          setProgress(parsedServer);
+        }
+      } else if (localProgress) {
+        setProgress(localProgress);
+        // Sync local progress to server for new users
+        syncProgressToServer(localProgress);
+      }
+    } catch (e) {
+      console.error("Failed to load server progress", e);
+      if (localProgress) {
+        setProgress(localProgress);
       }
     }
   };
@@ -200,6 +319,27 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('fala_comigo_progress', JSON.stringify(progress));
   }, [progress]);
+
+  // Periodic sync to server (every 5 minutes of activity)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    // Start periodic sync interval
+    syncIntervalRef.current = setInterval(() => {
+      const now = Date.now();
+      // Only sync if there's been activity (we're in a tracked mode)
+      if (TRACKED_MODES.includes(mode) && now - lastSyncRef.current >= SYNC_INTERVAL_MS) {
+        syncProgressToServer(progress);
+        lastSyncRef.current = now;
+      }
+    }, SYNC_INTERVAL_MS);
+
+    return () => {
+      if (syncIntervalRef.current) {
+        clearInterval(syncIntervalRef.current);
+      }
+    };
+  }, [isAuthenticated, mode, progress]);
 
   // Track practice minutes when entering/leaving tracked modes
   useEffect(() => {
@@ -432,6 +572,10 @@ const App: React.FC = () => {
 
       setActiveSubmoduleId(null);
       setLastAnalysis(analysis);
+
+      // Sync progress to server after session completion
+      const currentProgress = JSON.parse(localStorage.getItem('fala_comigo_progress') || '{}');
+      syncProgressToServer(currentProgress);
     } catch (err) {
       console.error("Analysis failed", err);
       setMode(AppMode.DASHBOARD);
@@ -497,13 +641,35 @@ const App: React.FC = () => {
     setProgress(prev => {
       const exists = prev.vocabulary.some(v => v.word.toLowerCase() === word.toLowerCase());
       if (exists) return prev;
-      return {
+      const newProgress = {
         ...prev,
         vocabulary: [
           ...prev.vocabulary,
           { word, meaning, confidence: 10, lastPracticed: new Date(), source: 'Dictionary' }
         ].slice(-200)
       };
+      // Sync to server after saving vocabulary
+      syncProgressToServer(newProgress);
+      return newProgress;
+    });
+  };
+
+  // Boost confidence when an existing word is looked up in dictionary
+  const handleBoostConfidence = (word: string) => {
+    setProgress(prev => {
+      const newVocabulary = prev.vocabulary.map(v => {
+        if (v.word.toLowerCase() === word.toLowerCase()) {
+          return {
+            ...v,
+            confidence: Math.min(100, v.confidence + 5), // Increase by 5, cap at 100
+            lastPracticed: new Date()
+          };
+        }
+        return v;
+      });
+      const newProgress = { ...prev, vocabulary: newVocabulary };
+      syncProgressToServer(newProgress);
+      return newProgress;
     });
   };
 
@@ -517,11 +683,11 @@ const App: React.FC = () => {
       case AppMode.REVIEW_SESSION:
         return <ChatView mode={mode} messages={messages} onAddMessage={handleUserMessage} difficulty={progress.difficulty} memories={progress.memories} selectedTopics={progress.selectedTopics} onFinish={finishChatSession} />;
       case AppMode.LIVE_VOICE:
-        return <LiveVoiceView memories={progress.memories} difficulty={progress.difficulty} />;
+        return <LiveVoiceView memories={progress.memories} difficulty={progress.difficulty} userName={user?.name || 'Student'} />;
       case AppMode.IMAGE_ANALYSIS:
         return <ImageAnalyzer onAddMessage={handleUserMessage} difficulty={progress.difficulty} />;
       case AppMode.DICTIONARY:
-        return <DictionaryView onSaveWord={handleSaveDictionaryWord} savedWords={progress.vocabulary} />;
+        return <DictionaryView onSaveWord={handleSaveDictionaryWord} onBoostConfidence={handleBoostConfidence} savedWords={progress.vocabulary} />;
       case AppMode.IMPORT_MEMORY:
         return <MemoryImportView onImport={syncExternalMemory} />;
       case AppMode.LESSONS:
@@ -533,7 +699,7 @@ const App: React.FC = () => {
       case AppMode.LEARNING_LOG:
         return <LearningLogView logs={progress.sessionLogs} />;
       default:
-        return <ReviewSessionView progress={progress} onStartReview={(p) => startLesson(p, AppMode.REVIEW_SESSION)} />;
+        return <ReviewSessionView progress={progress} onStartReview={(p) => startLesson(p, AppMode.REVIEW_SESSION)} userName={user?.name || 'your'} />;
     }
   };
 
@@ -571,7 +737,9 @@ const App: React.FC = () => {
         <div className="flex-1 flex flex-col min-w-0 h-full bg-slate-50">
           <Header mode={mode} streak={progress.streak} difficulty={progress.difficulty} setDifficulty={setDifficulty} />
           <main className="flex-1 relative overflow-hidden">
-            {renderContent()}
+            <ErrorBoundary>
+              {renderContent()}
+            </ErrorBoundary>
           </main>
         </div>
       </div>
