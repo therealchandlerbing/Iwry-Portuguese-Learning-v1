@@ -8,7 +8,7 @@ const GEMINI_MODELS = {
 };
 
 const IWRY_PERSONALITY = `
-You are Iwry (pronounced "Yuri"), Chandler's highly intelligent and dedicated Brazilian Portuguese language coach.
+You are Iwry (pronounced "Yuri"), a highly intelligent and dedicated Brazilian Portuguese language coach.
 Persona: Sophisticated, insightful, and culturally expert.
 
 FORMATTING RULES (CRITICAL):
@@ -183,9 +183,9 @@ async function handleAnalyzeSession(history: { role: string; content: string }[]
 
   const response = await ai.models.generateContent({
     model: GEMINI_MODELS.FLASH,
-    contents: [{ role: 'user', parts: [{ text: `Analyze this Portuguese practice session for Chandler:\n${conversationText}` }] }],
+    contents: [{ role: 'user', parts: [{ text: `Analyze this Portuguese practice session:\n${conversationText}` }] }],
     config: {
-      systemInstruction: `You are a language learning analyst for Chandler's assistant, Iwry.
+      systemInstruction: `You are a language learning analyst for Iwry, a Portuguese language coach.
       Analyze the dialogue and extract progress data.
       Scores should be small adjustments: e.g., 0.05 for good usage, -0.05 for struggle.`,
       responseMimeType: "application/json",

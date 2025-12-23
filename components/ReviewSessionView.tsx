@@ -6,6 +6,7 @@ import { RefreshCw, AlertTriangle, BookOpen, ChevronRight, Sparkles, Brain, Info
 interface ReviewSessionViewProps {
   progress: UserProgress;
   onStartReview: (prompt: string) => void;
+  userName?: string;
 }
 
 const GRAMMAR_RULES: Record<string, string> = {
@@ -16,7 +17,7 @@ const GRAMMAR_RULES: Record<string, string> = {
   'Pronouns': 'Brazilians use "Você" mostly. Object pronouns like "me/te/se" often shift placement in casual speech (Me ajuda!).'
 };
 
-const ReviewSessionView: React.FC<ReviewSessionViewProps> = ({ progress, onStartReview }) => {
+const ReviewSessionView: React.FC<ReviewSessionViewProps> = ({ progress, onStartReview, userName = 'your' }) => {
   const [activeGrammarTip, setActiveGrammarTip] = useState<string | null>(null);
 
   const weakVocab = progress.vocabulary
@@ -49,7 +50,7 @@ const ReviewSessionView: React.FC<ReviewSessionViewProps> = ({ progress, onStart
             <RefreshCw size={40} className="animate-spin-slow" />
           </div>
           <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Review Center</h2>
-          <p className="text-slate-500 text-lg max-w-md mx-auto">Focused practice on what matters most for Chandler's fluency right now.</p>
+          <p className="text-slate-500 text-lg max-w-md mx-auto">Focused practice on what matters most for {userName === 'your' ? 'your' : `${userName}'s`} fluency right now.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

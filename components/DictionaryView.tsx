@@ -6,10 +6,11 @@ import { DictionaryEntry, VocabItem } from '../types';
 
 interface DictionaryViewProps {
   onSaveWord?: (word: string, meaning: string) => void;
+  onBoostConfidence?: (word: string) => void;
   savedWords?: VocabItem[];
 }
 
-const DictionaryView: React.FC<DictionaryViewProps> = ({ onSaveWord, savedWords = [] }) => {
+const DictionaryView: React.FC<DictionaryViewProps> = ({ onSaveWord, onBoostConfidence, savedWords = [] }) => {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<DictionaryEntry | null>(null);
@@ -22,6 +23,16 @@ const DictionaryView: React.FC<DictionaryViewProps> = ({ onSaveWord, savedWords 
     try {
       const data = await getDictionaryDefinition(query);
       setResult(data);
+
+      // Boost confidence if word is already saved
+      if (data && onBoostConfidence) {
+        const existingWord = savedWords.find(v =>
+          v.word.toLowerCase() === data.word.toLowerCase()
+        );
+        if (existingWord) {
+          onBoostConfidence(data.word);
+        }
+      }
     } catch (err) {
       console.error(err);
     } finally {
