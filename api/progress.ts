@@ -1,5 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { sql } from '@vercel/postgres';
+import {
+  checkRateLimit,
+  applyRateLimitHeaders,
+  sendRateLimitExceeded,
+  RATE_LIMITS
+} from '../lib/rateLimit';
 
 async function validateSession(token: string): Promise<{ userId: number } | null> {
   try {
@@ -47,6 +53,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const { userId } = session;
+
+  // Rate limiting - User-based for progress operations
+  const rateLimitKey = `progress:user:${userId}`;
+  const rateLimit = await checkRateLimit(rateLimitKey, RATE_LIMITS.PROGRESS);
+  applyRateLimitHeaders(res, rateLimit);
+
+  if (!rateLimit.allowed) {
+    return sendRateLimitExceeded(res, rateLimit);
+  }
 
   // GET /api/progress - Load progress from database
   if (req.method === 'GET') {

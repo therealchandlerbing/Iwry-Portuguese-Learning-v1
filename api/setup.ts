@@ -20,7 +20,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         SELECT table_name
         FROM information_schema.tables
         WHERE table_schema = 'public'
-        AND table_name IN ('users', 'sessions', 'user_progress')
+        AND table_name IN ('users', 'sessions', 'user_progress', 'rate_limits')
       `;
 
       const existingTables = tablesResult.rows.map(r => r.table_name);
@@ -30,7 +30,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         tables: {
           users: existingTables.includes('users'),
           sessions: existingTables.includes('sessions'),
-          user_progress: existingTables.includes('user_progress')
+          user_progress: existingTables.includes('user_progress'),
+          rate_limits: existingTables.includes('rate_limits')
         }
       });
     } catch (error: any) {
@@ -77,10 +78,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         )
       `;
 
+      // Create rate_limits table for API rate limiting
+      await sql`
+        CREATE TABLE IF NOT EXISTS rate_limits (
+          id SERIAL PRIMARY KEY,
+          key VARCHAR(255) NOT NULL,
+          created_at TIMESTAMP WITH TIME ZONE NOT NULL
+        )
+      `;
+
       // Create indexes for better performance
       await sql`CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token)`;
       await sql`CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)`;
       await sql`CREATE INDEX IF NOT EXISTS idx_user_progress_user_id ON user_progress(user_id)`;
+      await sql`CREATE INDEX IF NOT EXISTS idx_rate_limits_key_time ON rate_limits(key, created_at)`;
 
       return res.status(200).json({
         success: true,

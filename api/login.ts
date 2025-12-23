@@ -2,6 +2,13 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { sql } from '@vercel/postgres';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+import {
+  checkRateLimit,
+  getClientIp,
+  applyRateLimitHeaders,
+  sendRateLimitExceeded,
+  RATE_LIMITS
+} from '../lib/rateLimit';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -17,6 +24,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    // Rate limiting - IP-based for login attempts
+    const rateLimitKey = `login:${getClientIp(req)}`;
+    const rateLimit = await checkRateLimit(rateLimitKey, RATE_LIMITS.LOGIN);
+    applyRateLimitHeaders(res, rateLimit);
+
+    if (!rateLimit.allowed) {
+      return sendRateLimitExceeded(res, rateLimit);
+    }
+
     const { email, password } = req.body;
 
     if (!email || !password) {

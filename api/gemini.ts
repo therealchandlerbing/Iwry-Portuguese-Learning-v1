@@ -1,5 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI, Modality, Type } from "@google/genai";
+import {
+  checkRateLimit,
+  getClientIp,
+  getUserIdFromToken,
+  applyRateLimitHeaders,
+  sendRateLimitExceeded,
+  RATE_LIMITS
+} from '../lib/rateLimit';
 
 const GEMINI_MODELS = {
   FLASH: 'gemini-2.5-flash',
@@ -366,7 +374,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -377,6 +385,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    // Rate limiting - User-based if authenticated, IP-based otherwise
+    const userId = await getUserIdFromToken(req);
+    const rateLimitKey = userId ? `gemini:user:${userId}` : `gemini:ip:${getClientIp(req)}`;
+    const rateLimit = await checkRateLimit(rateLimitKey, RATE_LIMITS.GEMINI);
+    applyRateLimitHeaders(res, rateLimit);
+
+    if (!rateLimit.allowed) {
+      return sendRateLimitExceeded(res, rateLimit);
+    }
+
     const { action, payload } = req.body;
 
     let result;

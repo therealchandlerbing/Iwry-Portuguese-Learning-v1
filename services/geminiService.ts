@@ -1,23 +1,42 @@
-
 import { GoogleGenAI, Modality, LiveServerMessage } from "@google/genai";
 import { QuizQuestion, SessionAnalysis, DifficultyLevel, LessonModule, DictionaryEntry } from "../types";
+import { trackApiError, addBreadcrumb } from "../utils/errorTracking";
 
 const API_ENDPOINT = '/api/gemini';
 
 async function callApi(action: string, payload: any) {
-  const response = await fetch(API_ENDPOINT, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action, payload })
-  });
+  // Add breadcrumb for API call tracking
+  addBreadcrumb(`API call: ${action}`, 'api', { action }, 'info');
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'API request failed');
+  try {
+    const response = await fetch(API_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, payload })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      const error = new Error(errorData.error || 'API request failed');
+
+      // Track API errors
+      trackApiError(action, error, {
+        status: response.status,
+        statusText: response.statusText
+      });
+
+      throw error;
+    }
+
+    const data = await response.json();
+    return data.result;
+  } catch (error) {
+    // Track network or other errors
+    if (!(error instanceof Error) || !error.message.includes('API request failed')) {
+      trackApiError(action, error, { type: 'network_or_unknown' });
+    }
+    throw error;
   }
-
-  const data = await response.json();
-  return data.result;
 }
 
 export async function getDictionaryDefinition(word: string): Promise<DictionaryEntry> {

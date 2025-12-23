@@ -1,5 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { sql } from '@vercel/postgres';
+import {
+  checkRateLimit,
+  applyRateLimitHeaders,
+  sendRateLimitExceeded,
+  RATE_LIMITS
+} from '../lib/rateLimit';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Use specific origin or fall back to request origin for authenticated endpoints
@@ -36,6 +42,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (sessionResult.rows.length === 0) {
       return res.status(401).json({ error: 'Invalid or expired session' });
+    }
+
+    const userId = sessionResult.rows[0].user_id;
+
+    // Rate limiting - User-based for live key requests
+    const rateLimitKey = `live-key:user:${userId}`;
+    const rateLimit = await checkRateLimit(rateLimitKey, RATE_LIMITS.LIVE_KEY);
+    applyRateLimitHeaders(res, rateLimit);
+
+    if (!rateLimit.allowed) {
+      return sendRateLimitExceeded(res, rateLimit);
     }
 
     // Note: The API key must be provided to the client for Live Voice because
