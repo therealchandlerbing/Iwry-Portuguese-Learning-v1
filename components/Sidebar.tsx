@@ -14,7 +14,8 @@ import {
   History,
   FileText,
   Search,
-  LogOut
+  LogOut,
+  Brain
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -41,6 +42,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentMode, setMode, progress, userN
         { mode: AppMode.DICTIONARY, label: 'Linguistic Lookup', icon: <Search size={18} /> },
         { mode: AppMode.IMAGE_ANALYSIS, label: 'Photo Analysis', icon: <Camera size={18} /> },
         { mode: AppMode.LESSONS, label: 'Structured Lessons', icon: <BookOpen size={18} /> },
+        { mode: AppMode.FLASHCARDS, label: 'Flashcards', icon: <Brain size={18} /> },
         { mode: AppMode.REVIEW_SESSION, label: 'Review Center', icon: <RefreshCw size={18} /> },
         { mode: AppMode.CORRECTION_LIBRARY, label: 'Corrections', icon: <History size={18} /> },
         { mode: AppMode.LEARNING_LOG, label: 'Learning Log', icon: <FileText size={18} /> },

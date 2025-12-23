@@ -12,7 +12,8 @@ export enum AppMode {
   QUIZ = 'QUIZ',
   CORRECTION_LIBRARY = 'CORRECTION_LIBRARY',
   LEARNING_LOG = 'LEARNING_LOG',
-  DICTIONARY = 'DICTIONARY'
+  DICTIONARY = 'DICTIONARY',
+  FLASHCARDS = 'FLASHCARDS'
 }
 
 export enum DifficultyLevel {
@@ -110,11 +111,12 @@ export interface UserProgress {
   correctionHistory: CorrectionObject[];
   sessionLogs: ChatSessionLog[];
   streak: number;
-  selectedTopics: string[]; 
+  selectedTopics: string[];
   lastSessionDate: Date;
   sessionCount: number;
   generatedModules: LessonModule[];
   badges: Badge[];
+  flashcards: Flashcard[];
 }
 
 export interface SessionAnalysis {
@@ -146,6 +148,34 @@ export interface LessonModule {
 export interface QuizQuestion {
   question: string;
   options: string[];
-  answer: number; 
+  answer: number;
   explanation: string;
+}
+
+export interface Flashcard {
+  id: string;
+  front: string; // Question (e.g., "Como se diz 'meeting'?" or "Conjugate 'falar' in present tense (eu)")
+  back: string; // Answer (e.g., "reunião" or "falo")
+  type: 'translation' | 'conjugation' | 'grammar' | 'fill-blank';
+  category: string; // e.g., "Verb Conjugation", "Vocabulary", "Prepositions"
+  difficulty: DifficultyLevel;
+
+  // Spaced repetition fields (SM-2 algorithm)
+  nextReviewDate: Date;
+  interval: number; // Days until next review
+  easeFactor: number; // 1.3 to 2.5, default 2.5
+  reviewCount: number;
+  lastReviewed: Date | null;
+
+  // Source tracking
+  sourceType: 'correction' | 'vocabulary' | 'lesson' | 'custom';
+  sourceId?: string; // Reference to original correction/vocab item
+
+  // Additional metadata
+  createdDate: Date;
+  isArchived: boolean;
+
+  // Optional context
+  hint?: string;
+  exampleSentence?: string;
 }
