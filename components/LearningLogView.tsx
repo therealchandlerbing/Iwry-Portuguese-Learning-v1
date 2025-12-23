@@ -17,28 +17,35 @@ import {
   Clock
 } from 'lucide-react';
 import Skeleton from './Skeleton';
+import { usePagination, ELLIPSIS } from '../hooks/usePagination';
 
 interface LearningLogViewProps {
   logs: ChatSessionLog[];
 }
 
-const ITEMS_PER_PAGE = 10;
-
 const LearningLogView: React.FC<LearningLogViewProps> = ({ logs }) => {
   const [selectedLog, setSelectedLog] = useState<ChatSessionLog | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
+  // Brief loading state to smooth initial render transition
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initial loading state
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 100);
+    const timer = setTimeout(() => setIsLoading(false), 300);
     return () => clearTimeout(timer);
   }, []);
 
-  // Reset page when logs change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [logs.length]);
+  const {
+    currentPage,
+    totalPages,
+    paginatedItems: paginatedLogs,
+    startIndex,
+    endIndex,
+    pageNumbers,
+    setCurrentPage,
+    goToNextPage,
+    goToPreviousPage,
+    isFirstPage,
+    isLastPage,
+  } = usePagination({ items: logs, itemsPerPage: 10 });
 
   const getModeIcon = (mode: AppMode) => {
     switch (mode) {
@@ -58,38 +65,6 @@ const LearningLogView: React.FC<LearningLogViewProps> = ({ logs }) => {
     }
   };
 
-  // Pagination calculations
-  const totalPages = Math.ceil(logs.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedLogs = logs.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-
-  // Generate page numbers to display (show max 5 pages)
-  const getPageNumbers = () => {
-    const pages: number[] = [];
-    const maxVisiblePages = 5;
-
-    if (totalPages <= maxVisiblePages) {
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
-    } else {
-      const leftBound = Math.max(1, currentPage - 2);
-      const rightBound = Math.min(totalPages, currentPage + 2);
-
-      if (leftBound > 1) pages.push(1);
-      if (leftBound > 2) pages.push(-1); // -1 represents ellipsis
-
-      for (let i = leftBound; i <= rightBound; i++) {
-        pages.push(i);
-      }
-
-      if (rightBound < totalPages - 1) pages.push(-2); // -2 represents ellipsis
-      if (rightBound < totalPages) pages.push(totalPages);
-    }
-
-    return pages;
-  };
-
   if (selectedLog) {
     return (
       <div className="h-full flex flex-col bg-slate-50 overflow-hidden">
@@ -97,7 +72,7 @@ const LearningLogView: React.FC<LearningLogViewProps> = ({ logs }) => {
           <button
             onClick={() => setSelectedLog(null)}
             className="flex items-center gap-2 text-slate-500 hover:text-emerald-600 transition-colors font-black uppercase text-[10px] tracking-widest"
-            aria-label="Go back to session list"
+            aria-label="Voltar para lista de sessões"
           >
             <ArrowLeft size={18} aria-hidden="true" />
             Voltar
@@ -106,7 +81,7 @@ const LearningLogView: React.FC<LearningLogViewProps> = ({ logs }) => {
             <h3 className="text-sm font-black text-slate-900 tracking-tight">Registro de Sessão</h3>
             <p className="text-[9px] font-bold text-slate-400 uppercase">{selectedLog.timestamp.toLocaleDateString()} {selectedLog.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
           </div>
-          <div className="w-10 h-10 flex items-center justify-center bg-slate-100 rounded-xl text-slate-400" aria-label={`Session type: ${getModeLabel(selectedLog.mode)}`}>
+          <div className="w-10 h-10 flex items-center justify-center bg-slate-100 rounded-xl text-slate-400" aria-label={`Tipo de sessão: ${getModeLabel(selectedLog.mode)}`}>
             {getModeIcon(selectedLog.mode)}
           </div>
         </div>
@@ -123,7 +98,7 @@ const LearningLogView: React.FC<LearningLogViewProps> = ({ logs }) => {
 
           <div className="space-y-4">
             <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-2">Histórico da Conversa</h4>
-            <div className="space-y-3" role="log" aria-label="Conversation history">
+            <div className="space-y-3" role="log" aria-label="Histórico da conversa">
               {selectedLog.messages.map((msg, idx) => (
                 <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[85%] px-4 py-3 rounded-2xl text-sm ${
@@ -185,7 +160,7 @@ const LearningLogView: React.FC<LearningLogViewProps> = ({ logs }) => {
             <div className="flex items-center justify-between px-2">
               <span className="text-sm font-black uppercase tracking-widest text-slate-400">Sessões</span>
               <span className="text-xs text-slate-400">
-                Mostrando {startIndex + 1}-{Math.min(startIndex + ITEMS_PER_PAGE, logs.length)} de {logs.length}
+                Mostrando {startIndex + 1}-{endIndex} de {logs.length}
               </span>
             </div>
             <div className="space-y-4">
@@ -194,7 +169,7 @@ const LearningLogView: React.FC<LearningLogViewProps> = ({ logs }) => {
                   key={log.id}
                   onClick={() => setSelectedLog(log)}
                   className="w-full bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md hover:border-emerald-200 transition-all text-left flex items-center gap-4 group"
-                  aria-label={`View session from ${log.timestamp.toLocaleDateString()} - ${log.summary.substring(0, 50)}...`}
+                  aria-label={`Ver sessão de ${log.timestamp.toLocaleDateString()} - ${log.summary.substring(0, 50)}...`}
                 >
                   <div className="p-3 bg-slate-50 text-slate-400 group-hover:bg-emerald-50 group-hover:text-emerald-600 rounded-2xl transition-all">
                     {getModeIcon(log.mode)}
@@ -226,19 +201,19 @@ const LearningLogView: React.FC<LearningLogViewProps> = ({ logs }) => {
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-              <nav className="flex items-center justify-center gap-2 mt-8" aria-label="Pagination navigation">
+              <nav className="flex items-center justify-center gap-2 mt-8" aria-label="Navegação de paginação">
                 <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
+                  onClick={goToPreviousPage}
+                  disabled={isFirstPage}
                   className="p-2 rounded-xl bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-200 transition-colors"
-                  aria-label="Go to previous page"
+                  aria-label="Ir para página anterior"
                 >
                   <ChevronLeft size={20} aria-hidden="true" />
                 </button>
 
                 <div className="flex gap-1">
-                  {getPageNumbers().map((page, idx) => (
-                    page < 0 ? (
+                  {pageNumbers.map((page, idx) => (
+                    page === ELLIPSIS ? (
                       <span key={`ellipsis-${idx}`} className="w-8 h-8 flex items-center justify-center text-slate-400">
                         ...
                       </span>
@@ -251,7 +226,7 @@ const LearningLogView: React.FC<LearningLogViewProps> = ({ logs }) => {
                             ? 'bg-emerald-500 text-white'
                             : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                         }`}
-                        aria-label={`Go to page ${page}`}
+                        aria-label={`Ir para página ${page}`}
                         aria-current={currentPage === page ? 'page' : undefined}
                       >
                         {page}
@@ -261,10 +236,10 @@ const LearningLogView: React.FC<LearningLogViewProps> = ({ logs }) => {
                 </div>
 
                 <button
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
+                  onClick={goToNextPage}
+                  disabled={isLastPage}
                   className="p-2 rounded-xl bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-200 transition-colors"
-                  aria-label="Go to next page"
+                  aria-label="Ir para próxima página"
                 >
                   <ChevronRight size={20} aria-hidden="true" />
                 </button>

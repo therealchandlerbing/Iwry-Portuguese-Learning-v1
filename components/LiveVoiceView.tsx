@@ -267,7 +267,7 @@ const LiveVoiceView: React.FC<LiveVoiceViewProps> = ({ memories, difficulty, use
                 ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/20 ring-4 ring-red-500/10'
                 : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20 ring-4 ring-emerald-500/10'
             } disabled:opacity-50`}
-            aria-label={status === 'connecting' ? 'Connecting to voice chat' : (isActive ? 'End voice chat session' : 'Start voice chat session')}
+            aria-label={status === 'connecting' ? 'Conectando ao chat de voz' : (isActive ? 'Encerrar sessão de voz' : 'Iniciar sessão de voz')}
             aria-busy={status === 'connecting'}
           >
             {status === 'connecting' ? <Loader2 size={24} className="animate-spin" aria-hidden="true" /> : (isActive ? <MicOff size={24} aria-hidden="true" /> : <Mic size={24} aria-hidden="true" />)}

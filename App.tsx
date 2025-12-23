@@ -743,10 +743,10 @@ const App: React.FC = () => {
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:bg-emerald-600 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg"
       >
-        Skip to main content
+        Pular para o conteúdo principal
       </a>
       <div className="flex flex-1 overflow-hidden h-full">
-        <nav className="hidden md:block h-full shrink-0" aria-label="Main navigation">
+        <nav className="hidden md:block h-full shrink-0" aria-label="Navegação principal">
           <Sidebar progress={progress} currentMode={mode} setMode={setMode} userName={user?.name} onLogout={handleLogout} />
         </nav>
         <div className="flex-1 flex flex-col min-w-0 h-full bg-slate-50">

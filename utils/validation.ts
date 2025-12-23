@@ -2,14 +2,15 @@
 
 export const validateEmail = (email: string): string | null => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!email) return 'Email is required';
-  if (!emailRegex.test(email)) return 'Please enter a valid email address';
+  if (!email) return 'Email é obrigatório';
+  if (!emailRegex.test(email)) return 'Por favor, insira um endereço de email válido';
   return null;
 };
 
 export interface PasswordValidation {
   isValid: boolean;
   strength: 'weak' | 'medium' | 'strong';
+  strengthLabel: string;
   errors: string[];
   requirements: {
     label: string;
@@ -19,9 +20,9 @@ export interface PasswordValidation {
 
 export const validatePassword = (password: string): PasswordValidation => {
   const requirements = [
-    { label: 'At least 8 characters', met: password.length >= 8 },
-    { label: 'One uppercase letter', met: /[A-Z]/.test(password) },
-    { label: 'One number', met: /[0-9]/.test(password) },
+    { label: 'Pelo menos 8 caracteres', met: password.length >= 8 },
+    { label: 'Uma letra maiúscula', met: /[A-Z]/.test(password) },
+    { label: 'Um número', met: /[0-9]/.test(password) },
   ];
 
   const errors: string[] = requirements
@@ -34,17 +35,23 @@ export const validatePassword = (password: string): PasswordValidation => {
     errors.length === 1 ? 'medium' :
     'weak';
 
-  return { isValid, strength, errors, requirements };
+  const strengthLabels = {
+    weak: 'fraca',
+    medium: 'média',
+    strong: 'forte'
+  };
+
+  return { isValid, strength, strengthLabel: strengthLabels[strength], errors, requirements };
 };
 
 export const validateName = (name: string): string | null => {
-  if (!name) return 'Name is required';
-  if (name.length < 2) return 'Name must be at least 2 characters';
+  if (!name) return 'Nome é obrigatório';
+  if (name.length < 2) return 'Nome deve ter pelo menos 2 caracteres';
   return null;
 };
 
 export const validateConfirmPassword = (password: string, confirmPassword: string): string | null => {
-  if (!confirmPassword) return 'Please confirm your password';
-  if (password !== confirmPassword) return 'Passwords do not match';
+  if (!confirmPassword) return 'Por favor, confirme sua senha';
+  if (password !== confirmPassword) return 'As senhas não coincidem';
   return null;
 };

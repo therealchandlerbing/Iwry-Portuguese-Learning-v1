@@ -61,7 +61,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegister, onSwitchToLogin
     setTouchedFields({ name: true, email: true, password: true, confirmPassword: true });
 
     if (!isFormValid) {
-      setError('Please fix the errors above before submitting');
+      setError('Por favor, corrija os erros acima antes de enviar');
       return;
     }
 
@@ -77,12 +77,12 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegister, onSwitchToLogin
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Registration failed');
+        throw new Error(data.error || 'Falha no registro');
       }
 
       onRegister(data.token, data.user);
     } catch (err: any) {
-      setError(err.message || 'Registration failed');
+      setError(err.message || 'Falha no registro');
     } finally {
       setLoading(false);
     }
@@ -94,7 +94,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegister, onSwitchToLogin
         href="#register-form"
         className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:bg-emerald-600 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg"
       >
-        Skip to registration form
+        Pular para formulário de registro
       </a>
       <div className="max-w-sm w-full bg-white rounded-3xl p-8 shadow-xl shadow-slate-200/50 border border-slate-100 my-6">
         <div className="text-center mb-6">
@@ -107,7 +107,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegister, onSwitchToLogin
           </p>
         </div>
 
-        <form id="register-form" onSubmit={handleSubmit} className="space-y-4" aria-label="Registration form">
+        <form id="register-form" onSubmit={handleSubmit} className="space-y-4" aria-label="Formulário de registro">
           {/* Name Field */}
           <div>
             <label htmlFor="register-name" className="block text-sm font-medium text-slate-700 mb-1.5">
@@ -190,7 +190,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegister, onSwitchToLogin
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
               >
                 {showPassword ? <EyeOff className="w-5 h-5" aria-hidden="true" /> : <Eye className="w-5 h-5" aria-hidden="true" />}
               </button>
@@ -198,7 +198,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegister, onSwitchToLogin
 
             {/* Password Strength Indicator */}
             {password && (
-              <div className="mt-2" id="password-requirements">
+              <div className="mt-2" id="password-requirements" aria-live="polite">
                 <div className="flex gap-1 mb-1" role="presentation">
                   {[1, 2, 3].map(i => (
                     <div
@@ -213,11 +213,11 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegister, onSwitchToLogin
                   ))}
                 </div>
                 <p className="text-xs text-slate-500">
-                  Password strength: <span className={`font-semibold ${getStrengthColor(passwordValidation.strength)}`}>{passwordValidation.strength}</span>
+                  Força da senha: <span className={`font-semibold ${getStrengthColor(passwordValidation.strength)}`}>{passwordValidation.strengthLabel}</span>
                 </p>
 
                 {/* Requirements Checklist */}
-                <ul className="mt-2 space-y-1" aria-label="Password requirements">
+                <ul className="mt-2 space-y-1" aria-label="Requisitos da senha">
                   {passwordValidation.requirements.map((req, i) => (
                     <li key={i} className={`text-xs flex items-center gap-1.5 ${
                       req.met ? 'text-emerald-600' : 'text-slate-400'
@@ -263,7 +263,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegister, onSwitchToLogin
             {confirmPassword && !confirmPasswordError && password === confirmPassword && (
               <p className="text-emerald-600 text-xs mt-1.5 flex items-center gap-1">
                 <Check size={12} aria-hidden="true" />
-                Passwords match
+                Senhas coincidem
               </p>
             )}
           </div>

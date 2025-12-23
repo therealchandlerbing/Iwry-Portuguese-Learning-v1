@@ -13,7 +13,13 @@ const Skeleton: React.FC<SkeletonProps> = ({ className = '', variant = 'text' })
     rectangular: 'rounded-xl'
   };
 
-  return <div className={`${baseClass} ${variantClass[variant]} ${className}`} />;
+  return (
+    <div
+      className={`${baseClass} ${variantClass[variant]} ${className}`}
+      role="status"
+      aria-label="Carregando..."
+    />
+  );
 };
 
 export default Skeleton;

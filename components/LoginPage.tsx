@@ -24,7 +24,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister }) =>
   const emailError = useMemo(() => touchedFields.email ? validateEmail(email) : null, [email, touchedFields.email]);
   const passwordError = useMemo(() => {
     if (!touchedFields.password) return null;
-    return !password ? 'Please enter your password' : null;
+    return !password ? 'Por favor, insira sua senha' : null;
   }, [password, touchedFields.password]);
 
   // Form validity check
@@ -59,12 +59,12 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister }) =>
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Login failed');
+        throw new Error(data.error || 'Falha no login');
       }
 
       onLogin(data.token, data.user);
     } catch (err: any) {
-      setError(err.message || 'Login failed');
+      setError(err.message || 'Falha no login');
     } finally {
       setLoading(false);
     }
@@ -76,7 +76,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister }) =>
         href="#login-form"
         className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:bg-emerald-600 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg"
       >
-        Skip to login form
+        Pular para formulário de login
       </a>
       <div className="max-w-sm w-full bg-white rounded-3xl p-8 shadow-xl shadow-slate-200/50 border border-slate-100">
         <div className="text-center mb-8">
@@ -89,7 +89,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister }) =>
           </p>
         </div>
 
-        <form id="login-form" onSubmit={handleSubmit} className="space-y-4" aria-label="Login form">
+        <form id="login-form" onSubmit={handleSubmit} className="space-y-4" aria-label="Formulário de login">
           {/* Email Field */}
           <div>
             <label htmlFor="login-email" className="block text-sm font-medium text-slate-700 mb-1.5">
@@ -145,7 +145,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister }) =>
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
               >
                 {showPassword ? <EyeOff className="w-5 h-5" aria-hidden="true" /> : <Eye className="w-5 h-5" aria-hidden="true" />}
               </button>

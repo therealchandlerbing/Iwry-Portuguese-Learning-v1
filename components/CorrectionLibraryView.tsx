@@ -3,67 +3,41 @@ import React, { useState, useEffect } from 'react';
 import { CorrectionObject } from '../types';
 import { History, ArrowRight, CheckCircle2, XCircle, Brain, Info, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 import Skeleton from './Skeleton';
+import { usePagination, ELLIPSIS } from '../hooks/usePagination';
 
 interface CorrectionLibraryViewProps {
   history: CorrectionObject[];
   onStartReview: (prompt: string) => void;
 }
 
-const ITEMS_PER_PAGE = 10;
-
 const CorrectionLibraryView: React.FC<CorrectionLibraryViewProps> = ({ history, onStartReview }) => {
-  const [currentPage, setCurrentPage] = useState(1);
+  // Brief loading state to smooth initial render transition
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initial loading state
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 100);
+    const timer = setTimeout(() => setIsLoading(false), 300);
     return () => clearTimeout(timer);
   }, []);
 
-  // Reset page when history changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [history.length]);
+  const {
+    currentPage,
+    totalPages,
+    paginatedItems: paginatedHistory,
+    startIndex,
+    endIndex,
+    pageNumbers,
+    setCurrentPage,
+    goToNextPage,
+    goToPreviousPage,
+    isFirstPage,
+    isLastPage,
+  } = usePagination({ items: history, itemsPerPage: 10 });
 
   const startCategoryReview = (category: string) => {
     onStartReview(`Quero praticar especificamente a categoria gramatical: "${category}". Use meus erros anteriores como exemplos.`);
   };
 
-  // Fixed 'unknown' type error on line 89 by ensuring categories is typed as string[]
   const categories = Array.from(new Set(history.map(c => c.category))) as string[];
-
-  // Pagination calculations
-  const totalPages = Math.ceil(history.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedHistory = history.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-
-  // Generate page numbers to display (show max 5 pages)
-  const getPageNumbers = () => {
-    const pages: number[] = [];
-    const maxVisiblePages = 5;
-
-    if (totalPages <= maxVisiblePages) {
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
-    } else {
-      const leftBound = Math.max(1, currentPage - 2);
-      const rightBound = Math.min(totalPages, currentPage + 2);
-
-      if (leftBound > 1) pages.push(1);
-      if (leftBound > 2) pages.push(-1); // -1 represents ellipsis
-
-      for (let i = leftBound; i <= rightBound; i++) {
-        pages.push(i);
-      }
-
-      if (rightBound < totalPages - 1) pages.push(-2); // -2 represents ellipsis
-      if (rightBound < totalPages) pages.push(totalPages);
-    }
-
-    return pages;
-  };
 
   if (isLoading) {
     return (
@@ -113,7 +87,7 @@ const CorrectionLibraryView: React.FC<CorrectionLibraryViewProps> = ({ history, 
               <div className="flex items-center justify-between px-2">
                 <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">Erros Recentes</h3>
                 <span className="text-xs text-slate-400">
-                  Mostrando {startIndex + 1}-{Math.min(startIndex + ITEMS_PER_PAGE, history.length)} de {history.length}
+                  Mostrando {startIndex + 1}-{endIndex} de {history.length}
                 </span>
               </div>
               <div className="space-y-4">
@@ -156,19 +130,19 @@ const CorrectionLibraryView: React.FC<CorrectionLibraryViewProps> = ({ history, 
 
               {/* Pagination Controls */}
               {totalPages > 1 && (
-                <nav className="flex items-center justify-center gap-2 mt-8" aria-label="Pagination navigation">
+                <nav className="flex items-center justify-center gap-2 mt-8" aria-label="Navegação de paginação">
                   <button
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
+                    onClick={goToPreviousPage}
+                    disabled={isFirstPage}
                     className="p-2 rounded-xl bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-200 transition-colors"
-                    aria-label="Go to previous page"
+                    aria-label="Ir para página anterior"
                   >
                     <ChevronLeft size={20} aria-hidden="true" />
                   </button>
 
                   <div className="flex gap-1">
-                    {getPageNumbers().map((page, idx) => (
-                      page < 0 ? (
+                    {pageNumbers.map((page, idx) => (
+                      page === ELLIPSIS ? (
                         <span key={`ellipsis-${idx}`} className="w-8 h-8 flex items-center justify-center text-slate-400">
                           ...
                         </span>
@@ -181,7 +155,7 @@ const CorrectionLibraryView: React.FC<CorrectionLibraryViewProps> = ({ history, 
                               ? 'bg-emerald-500 text-white'
                               : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                           }`}
-                          aria-label={`Go to page ${page}`}
+                          aria-label={`Ir para página ${page}`}
                           aria-current={currentPage === page ? 'page' : undefined}
                         >
                           {page}
@@ -191,10 +165,10 @@ const CorrectionLibraryView: React.FC<CorrectionLibraryViewProps> = ({ history, 
                   </div>
 
                   <button
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
+                    onClick={goToNextPage}
+                    disabled={isLastPage}
                     className="p-2 rounded-xl bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-200 transition-colors"
-                    aria-label="Go to next page"
+                    aria-label="Ir para próxima página"
                   >
                     <ChevronRight size={20} aria-hidden="true" />
                   </button>
@@ -215,7 +189,7 @@ const CorrectionLibraryView: React.FC<CorrectionLibraryViewProps> = ({ history, 
                       key={cat}
                       onClick={() => startCategoryReview(cat)}
                       className="w-full flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 rounded-2xl transition-all group"
-                      aria-label={`Start review for ${cat} category`}
+                      aria-label={`Iniciar revisão da categoria ${cat}`}
                     >
                       <span className="text-xs font-bold text-white uppercase tracking-widest">{cat}</span>
                       <ArrowRight size={16} className="text-emerald-400 group-hover:translate-x-1 transition-transform" aria-hidden="true" />

@@ -366,7 +366,7 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, diffi
                     <button
                       onClick={() => playAudio(msg.content, msg.id)}
                       className="p-2.5 bg-white rounded-full shadow-sm text-slate-400 hover:text-emerald-500 hover:scale-110 active:scale-95 transition-all border border-slate-100 mb-1"
-                      aria-label="Play pronunciation"
+                      aria-label="Reproduzir pronúncia"
                     >
                       {audioLoading === msg.id ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <Volume2 size={16} aria-hidden="true" />}
                     </button>

@@ -128,7 +128,7 @@ const DictionaryView: React.FC<DictionaryViewProps> = ({ onSaveWord, onBoostConf
                     <button
                       onClick={playPronunciation}
                       className="p-3 bg-emerald-50 text-emerald-600 rounded-full hover:bg-emerald-100 transition-all group"
-                      aria-label="Play pronunciation"
+                      aria-label="Reproduzir pronúncia"
                     >
                       {audioLoading ? <Loader2 size={24} className="animate-spin" aria-hidden="true" /> : <Volume2 size={24} className="group-hover:scale-110 transition-transform" aria-hidden="true" />}
                     </button>
@@ -140,7 +140,7 @@ const DictionaryView: React.FC<DictionaryViewProps> = ({ onSaveWord, onBoostConf
                           ? 'bg-emerald-500 text-white cursor-default'
                           : 'bg-slate-50 text-slate-400 hover:bg-pink-50 hover:text-pink-500'
                       }`}
-                      aria-label={isAlreadySaved ? "Already saved to vocabulary" : "Save to vocabulary"}
+                      aria-label={isAlreadySaved ? "Já salvo no vocabulário" : "Salvar no vocabulário"}
                       aria-pressed={isAlreadySaved}
                     >
                       <Heart size={24} className={`${isAlreadySaved ? 'fill-white' : 'group-hover:fill-pink-500 transition-colors'}`} aria-hidden="true" />
