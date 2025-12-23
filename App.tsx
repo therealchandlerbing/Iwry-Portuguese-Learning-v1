@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AppMode, Message, UserProgress, VocabItem, MemoryEntry, SessionAnalysis, DifficultyLevel, CorrectionObject, LessonModule, Badge, ChatSessionLog } from './types';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -156,6 +156,12 @@ const App: React.FC = () => {
   const [activeSubmoduleId, setActiveSubmoduleId] = useState<string | null>(null);
   const syncIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastSyncRef = useRef<number>(0);
+  const progressRef = useRef<UserProgress>(INITIAL_PROGRESS);
+
+  // Keep progressRef in sync with progress state
+  useEffect(() => {
+    progressRef.current = progress;
+  }, [progress]);
 
   // Track active learning modes for practice minutes
   const TRACKED_MODES = [
@@ -329,7 +335,8 @@ const App: React.FC = () => {
       const now = Date.now();
       // Only sync if there's been activity (we're in a tracked mode)
       if (TRACKED_MODES.includes(mode) && now - lastSyncRef.current >= SYNC_INTERVAL_MS) {
-        syncProgressToServer(progress);
+        // Use ref to get latest progress without causing effect to re-run
+        syncProgressToServer(progressRef.current);
         lastSyncRef.current = now;
       }
     }, SYNC_INTERVAL_MS);
@@ -339,7 +346,7 @@ const App: React.FC = () => {
         clearInterval(syncIntervalRef.current);
       }
     };
-  }, [isAuthenticated, mode, progress]);
+  }, [isAuthenticated, mode]);
 
   // Track practice minutes when entering/leaving tracked modes
   useEffect(() => {
@@ -508,7 +515,7 @@ const App: React.FC = () => {
         const filteredNewVocab = analysis.newVocab
           .filter(v => !existingWords.has(v.word.toLowerCase()))
           .map(v => ({ ...v, confidence: 10, lastPracticed: new Date() }));
-        
+
         const updatedVocab = [...prev.vocabulary, ...filteredNewVocab].slice(-200);
 
         const newGrammarMastery = { ...prev.grammarMastery };
@@ -558,7 +565,7 @@ const App: React.FC = () => {
           updatedLessonsCompleted = [...prev.lessonsCompleted, currentSubmoduleId];
         }
 
-        return {
+        const newProgress = {
           ...prev,
           vocabulary: updatedVocab,
           grammarMastery: newGrammarMastery,
@@ -568,14 +575,15 @@ const App: React.FC = () => {
           lessonsCompleted: updatedLessonsCompleted,
           sessionLogs: [newLog, ...(prev.sessionLogs || [])].slice(0, 30)
         };
+
+        // Sync progress to server with the new state (avoids race condition)
+        syncProgressToServer(newProgress);
+
+        return newProgress;
       });
 
       setActiveSubmoduleId(null);
       setLastAnalysis(analysis);
-
-      // Sync progress to server after session completion
-      const currentProgress = JSON.parse(localStorage.getItem('fala_comigo_progress') || '{}');
-      syncProgressToServer(currentProgress);
     } catch (err) {
       console.error("Analysis failed", err);
       setMode(AppMode.DASHBOARD);

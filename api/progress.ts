@@ -22,10 +22,12 @@ async function validateSession(token: string): Promise<{ userId: number } | null
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // CORS headers - restrict to configured frontend URL for security
+  const allowedOrigin = process.env.FRONTEND_URL || 'http://localhost:3000';
+  res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -79,7 +81,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // POST /api/progress - Save progress to database
   if (req.method === 'POST') {
     try {
-      const { progress, clientTimestamp } = req.body;
+      // clientTimestamp is sent by the client for future conflict resolution
+      // (e.g., comparing client vs server timestamps for more advanced merge strategies)
+      const { progress, clientTimestamp: _clientTimestamp } = req.body;
 
       if (!progress) {
         return res.status(400).json({ error: 'Progress data is required' });

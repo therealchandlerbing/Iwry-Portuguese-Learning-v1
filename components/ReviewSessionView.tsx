@@ -50,7 +50,7 @@ const ReviewSessionView: React.FC<ReviewSessionViewProps> = ({ progress, onStart
             <RefreshCw size={40} className="animate-spin-slow" />
           </div>
           <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Review Center</h2>
-          <p className="text-slate-500 text-lg max-w-md mx-auto">Focused practice on what matters most for {userName}'s fluency right now.</p>
+          <p className="text-slate-500 text-lg max-w-md mx-auto">Focused practice on what matters most for {userName === 'your' ? 'your' : `${userName}'s`} fluency right now.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
