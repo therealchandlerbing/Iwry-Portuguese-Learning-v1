@@ -29,7 +29,8 @@ import {
   Plane,
   Coffee
 } from 'lucide-react';
-import { generateChatResponse, textToSpeech, transcribeAudio, decodeAudioData } from '../services/geminiService';
+import { generateChatResponse, textToSpeech, transcribeAudio } from '../services/geminiService';
+import { audioService } from '../services/audioService';
 
 // Scenario definitions for conversation practice
 const SCENARIOS = [
@@ -169,15 +170,17 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, diffi
     try {
       const audioBytes = await textToSpeech(cleanText);
       if (audioBytes) {
-        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-        const buffer = await decodeAudioData(audioBytes, audioContext, 24000, 1);
-        const source = audioContext.createBufferSource();
-        source.buffer = buffer;
-        source.connect(audioContext.destination);
-        source.start();
+        await audioService.playAudio(audioBytes);
       }
     } catch (err) { console.error(err); } finally { setAudioLoading(null); }
   };
+
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      audioService.stopCurrentAudio();
+    };
+  }, []);
 
   const startRecording = async () => {
     try {
@@ -360,8 +363,12 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, messages, onAddMessage, diffi
                     </div>
                   </div>
                   {!isUser && !isCorrection && (
-                    <button onClick={() => playAudio(msg.content, msg.id)} className="p-2.5 bg-white rounded-full shadow-sm text-slate-400 hover:text-emerald-500 hover:scale-110 active:scale-95 transition-all border border-slate-100 mb-1">
-                      {audioLoading === msg.id ? <Loader2 size={16} className="animate-spin" /> : <Volume2 size={16} />}
+                    <button
+                      onClick={() => playAudio(msg.content, msg.id)}
+                      className="p-2.5 bg-white rounded-full shadow-sm text-slate-400 hover:text-emerald-500 hover:scale-110 active:scale-95 transition-all border border-slate-100 mb-1"
+                      aria-label="Play pronunciation"
+                    >
+                      {audioLoading === msg.id ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <Volume2 size={16} aria-hidden="true" />}
                     </button>
                   )}
                 </div>

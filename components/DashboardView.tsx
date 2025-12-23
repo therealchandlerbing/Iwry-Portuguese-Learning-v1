@@ -1,16 +1,18 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { UserProgress, AppMode, DifficultyLevel } from '../types';
-import { 
+import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
   Radar, RadarChart, PolarGrid, PolarAngleAxis
 } from 'recharts';
-import { 
-  Trophy, Zap, Book, Star, MessageCircle, 
+import {
+  Trophy, Zap, Book, Star, MessageCircle,
   Target, Layers, ChevronRight, Sparkles, Volume2, Loader2, Lightbulb, Activity, Globe, AlertCircle, X, Award, Flag
 } from 'lucide-react';
-import { textToSpeech, decodeAudioData } from '../services/geminiService';
+import { textToSpeech } from '../services/geminiService';
+import { audioService } from '../services/audioService';
 import BadgeShowcase from './BadgeShowcase';
+import Skeleton from './Skeleton';
 
 interface DashboardViewProps {
   progress: UserProgress;
@@ -27,6 +29,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
   const [sessionCompleted, setSessionCompleted] = useState(false);
   const [audioLoading, setAudioLoading] = useState(false);
   const [isChartMounted, setIsChartMounted] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   // Delay chart rendering to ensure DOM is ready and prevent MutationObserver errors
   // Using requestAnimationFrame ensures the browser has completed layout before mounting the chart
@@ -35,6 +38,12 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
       setIsChartMounted(true);
     });
     return () => cancelAnimationFrame(frameId);
+  }, []);
+
+  // Initial loading state
+  useEffect(() => {
+    const timer = setTimeout(() => setIsInitialLoad(false), 100);
+    return () => clearTimeout(timer);
   }, []);
 
   const labels = useMemo(() => {
@@ -98,6 +107,33 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
     { label: 'Sessões', value: progress.sessionCount, icon: <MessageCircle className="text-purple-500" size={18} />, color: 'bg-purple-50' },
     { label: 'Ofensiva', value: progress.streak, icon: <Trophy className="text-orange-500" size={18} />, color: 'bg-orange-50' }
   ];
+
+  // Show loading skeleton during initial load
+  if (isInitialLoad) {
+    return (
+      <div className="p-4 sm:p-8 space-y-10 overflow-y-auto h-full bg-[#f8fafc] pb-32 no-scrollbar">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6">
+          <div className="space-y-2">
+            <Skeleton className="h-10 w-48" />
+            <Skeleton className="h-4 w-32" />
+          </div>
+          <Skeleton className="h-16 w-32" variant="rectangular" />
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <Skeleton className="h-96" variant="rectangular" />
+          <div className="lg:col-span-2 space-y-8">
+            <Skeleton className="h-48" variant="rectangular" />
+            <Skeleton className="h-32" variant="rectangular" />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+          {[1, 2, 3, 4].map(i => (
+            <Skeleton key={i} className="h-32" variant="rectangular" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 sm:p-8 space-y-10 overflow-y-auto h-full bg-[#f8fafc] pb-32 animate-in fade-in duration-700 no-scrollbar">
