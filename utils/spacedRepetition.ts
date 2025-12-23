@@ -23,6 +23,14 @@ import { Flashcard } from '../types';
 
 export type ReviewQuality = 'again' | 'hard' | 'good' | 'easy';
 
+// SM-2 Algorithm Constants
+const MIN_EASE_FACTOR = 1.3;
+const MAX_EASE_FACTOR = 2.5;
+const DEFAULT_EASE_FACTOR = 2.5;
+const MIN_PASSING_QUALITY = 3; // Quality score threshold for successful review
+const MASTERY_REVIEW_COUNT = 5; // Reviews needed for mastery
+const MASTERY_EASE_FACTOR = 2.5; // Ease factor threshold for mastery
+
 /**
  * Maps user-friendly ratings to SM-2 quality scores (0-5)
  */
@@ -54,19 +62,26 @@ export function calculateNextReview(
 ): Flashcard {
   const q = mapQualityToScore(quality);
 
-  // Calculate new ease factor (EF)
+  // Calculate new ease factor (EF) only if card is not being reset
   // EF' = EF + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02))
-  // Minimum EF is 1.3 (prevents cards from becoming too difficult)
-  let newEaseFactor = flashcard.easeFactor + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02));
-  if (newEaseFactor < 1.3) {
-    newEaseFactor = 1.3;
+  // Bounded between MIN_EASE_FACTOR and MAX_EASE_FACTOR
+  let newEaseFactor = flashcard.easeFactor;
+
+  if (q >= MIN_PASSING_QUALITY) {
+    newEaseFactor = flashcard.easeFactor + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02));
+    if (newEaseFactor < MIN_EASE_FACTOR) {
+      newEaseFactor = MIN_EASE_FACTOR;
+    }
+    if (newEaseFactor > MAX_EASE_FACTOR) {
+      newEaseFactor = MAX_EASE_FACTOR;
+    }
   }
 
   let newInterval: number;
   const currentInterval = flashcard.interval;
 
-  // If quality is less than 3, reset the card (start over)
-  if (q < 3) {
+  // If quality is less than MIN_PASSING_QUALITY, reset the card (start over)
+  if (q < MIN_PASSING_QUALITY) {
     newInterval = 1; // Review tomorrow
   } else {
     // First review (n=1): 1 day
@@ -85,8 +100,8 @@ export function calculateNextReview(
   const nextReviewDate = new Date();
   nextReviewDate.setDate(nextReviewDate.getDate() + newInterval);
 
-  // Update review count only if quality >= 3 (otherwise we're resetting)
-  const newReviewCount = q >= 3 ? flashcard.reviewCount + 1 : 0;
+  // Update review count only if quality >= MIN_PASSING_QUALITY (otherwise we're resetting)
+  const newReviewCount = q >= MIN_PASSING_QUALITY ? flashcard.reviewCount + 1 : 0;
 
   return {
     ...flashcard,
@@ -105,15 +120,16 @@ export function calculateNextReview(
  * @returns Array of flashcards due today, sorted by priority (oldest first)
  */
 export function getDueFlashcards(flashcards: Flashcard[]): Flashcard[] {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0); // Start of today
+  // Create today's date at midnight (avoid mutation)
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
   return flashcards
     .filter(card => !card.isArchived)
     .filter(card => {
       const reviewDate = new Date(card.nextReviewDate);
-      reviewDate.setHours(0, 0, 0, 0);
-      return reviewDate <= today;
+      const reviewDateMidnight = new Date(reviewDate.getFullYear(), reviewDate.getMonth(), reviewDate.getDate());
+      return reviewDateMidnight <= today;
     })
     .sort((a, b) => {
       // Sort by next review date (oldest/most overdue first)
@@ -170,7 +186,7 @@ export function createFlashcard(
     // SM-2 defaults
     nextReviewDate: tomorrow, // New cards are due tomorrow
     interval: 1,
-    easeFactor: 2.5, // Default ease factor
+    easeFactor: DEFAULT_EASE_FACTOR,
     reviewCount: 0,
     lastReviewed: null,
 
@@ -186,8 +202,8 @@ export function getFlashcardStats(flashcards: Flashcard[]) {
   const activeCards = flashcards.filter(c => !c.isArchived);
   const dueCards = getDueFlashcards(flashcards);
 
-  const masteredCards = activeCards.filter(c => c.reviewCount >= 5 && c.easeFactor >= 2.5);
-  const learningCards = activeCards.filter(c => c.reviewCount < 5);
+  const masteredCards = activeCards.filter(c => c.reviewCount >= MASTERY_REVIEW_COUNT && c.easeFactor >= MASTERY_EASE_FACTOR);
+  const learningCards = activeCards.filter(c => c.reviewCount < MASTERY_REVIEW_COUNT);
   const strugglingCards = activeCards.filter(c => c.easeFactor < 2.0);
 
   return {

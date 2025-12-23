@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Flashcard, UserProgress, AppMode } from '../types';
 import { getDueFlashcards, calculateNextReview, ReviewQuality, getFlashcardStats } from '../utils/spacedRepetition';
 import { RotateCcw, CheckCircle, XCircle, Brain, TrendingUp, Archive } from 'lucide-react';
@@ -12,29 +12,31 @@ interface FlashcardViewProps {
 export default function FlashcardView({ userProgress, updateProgress, setMode }: FlashcardViewProps) {
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
-  const [dueCards, setDueCards] = useState<Flashcard[]>([]);
   const [sessionComplete, setSessionComplete] = useState(false);
   const [reviewedCount, setReviewedCount] = useState(0);
   const [showStats, setShowStats] = useState(false);
 
-  // Load due cards on mount
-  useEffect(() => {
-    const cards = getDueFlashcards(userProgress.flashcards || []);
-    setDueCards(cards);
-    if (cards.length === 0) {
-      setSessionComplete(true);
-    }
+  // Memoize due cards calculation to avoid redundant filtering/sorting
+  const dueCards = useMemo(() => {
+    return getDueFlashcards(userProgress.flashcards || []);
   }, [userProgress.flashcards]);
 
+  // Check if session is complete
+  useEffect(() => {
+    if (dueCards.length === 0) {
+      setSessionComplete(true);
+    }
+  }, [dueCards.length]);
+
   const currentCard = dueCards[currentCardIndex];
-  const progress = dueCards.length > 0 ? ((currentCardIndex + 1) / dueCards.length) * 100 : 100;
-  const stats = getFlashcardStats(userProgress.flashcards || []);
+  const progress = dueCards.length > 0 ? ((currentCardIndex + 1) / dueCards.length) * 100 : 0;
+  const stats = useMemo(() => getFlashcardStats(userProgress.flashcards || []), [userProgress.flashcards]);
 
-  const handleFlip = () => {
-    setIsFlipped(!isFlipped);
-  };
+  const handleFlip = useCallback(() => {
+    setIsFlipped(prev => !prev);
+  }, []);
 
-  const handleReview = (quality: ReviewQuality) => {
+  const handleReview = useCallback((quality: ReviewQuality) => {
     if (!currentCard) return;
 
     // Update the flashcard with new SM-2 values
@@ -56,26 +58,38 @@ export default function FlashcardView({ userProgress, updateProgress, setMode }:
     } else {
       setSessionComplete(true);
     }
-  };
+  }, [currentCard, currentCardIndex, dueCards.length, userProgress.flashcards, updateProgress]);
 
-  const handleRestart = () => {
-    const cards = getDueFlashcards(userProgress.flashcards || []);
-    setDueCards(cards);
+  const handleRestart = useCallback(() => {
     setCurrentCardIndex(0);
     setIsFlipped(false);
     setSessionComplete(false);
     setReviewedCount(0);
-  };
+  }, []);
 
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (sessionComplete) return;
 
-      if (e.key === ' ' && !isFlipped) {
+      // Ignore keyboard shortcuts if user is typing in an input field
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        return;
+      }
+
+      // Space key to flip card (always prevent default to avoid page scroll)
+      if (e.key === ' ') {
         e.preventDefault();
-        handleFlip();
-      } else if (isFlipped) {
+        if (!isFlipped) {
+          handleFlip();
+        }
+        return;
+      }
+
+      // Number keys to rate card (only when flipped)
+      if (isFlipped) {
+        e.preventDefault(); // Prevent default for number keys too
         switch (e.key) {
           case '1':
             handleReview('again');
@@ -95,7 +109,7 @@ export default function FlashcardView({ userProgress, updateProgress, setMode }:
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [isFlipped, sessionComplete, currentCard]);
+  }, [isFlipped, sessionComplete, handleFlip, handleReview]);
 
   // No cards available
   if (sessionComplete && dueCards.length === 0) {
