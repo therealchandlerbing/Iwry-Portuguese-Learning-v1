@@ -738,13 +738,20 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen bg-slate-50 overflow-hidden text-slate-900 font-inter">
+      {/* Skip Link for Accessibility */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:bg-emerald-600 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg"
+      >
+        Pular para o conteúdo principal
+      </a>
       <div className="flex flex-1 overflow-hidden h-full">
-        <div className="hidden md:block h-full shrink-0">
+        <nav className="hidden md:block h-full shrink-0" aria-label="Navegação principal">
           <Sidebar progress={progress} currentMode={mode} setMode={setMode} userName={user?.name} onLogout={handleLogout} />
-        </div>
+        </nav>
         <div className="flex-1 flex flex-col min-w-0 h-full bg-slate-50">
           <Header mode={mode} streak={progress.streak} difficulty={progress.difficulty} setDifficulty={setDifficulty} />
-          <main className="flex-1 relative overflow-hidden">
+          <main id="main-content" className="flex-1 relative overflow-hidden" role="main">
             <ErrorBoundary>
               {renderContent()}
             </ErrorBoundary>

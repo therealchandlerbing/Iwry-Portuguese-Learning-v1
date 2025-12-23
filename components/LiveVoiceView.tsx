@@ -166,9 +166,30 @@ const LiveVoiceView: React.FC<LiveVoiceViewProps> = ({ memories, difficulty, use
     setStatus('idle');
   };
 
+  // Thorough cleanup on unmount to prevent memory leaks
   useEffect(() => {
     return () => {
-      if (sessionRef.current) sessionRef.current.close();
+      // Stop all audio sources
+      for (const source of sourcesRef.current) {
+        try { source.stop(); } catch(e) { /* Already stopped */ }
+      }
+      sourcesRef.current.clear();
+
+      // Close audio contexts
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close();
+        audioContextRef.current = null;
+      }
+      if (inputAudioContextRef.current && inputAudioContextRef.current.state !== 'closed') {
+        inputAudioContextRef.current.close();
+        inputAudioContextRef.current = null;
+      }
+
+      // Close session
+      if (sessionRef.current) {
+        sessionRef.current.close();
+        sessionRef.current = null;
+      }
     };
   }, []);
 
@@ -242,12 +263,14 @@ const LiveVoiceView: React.FC<LiveVoiceViewProps> = ({ memories, difficulty, use
             onClick={isActive ? stopSession : startSession}
             disabled={status === 'connecting'}
             className={`w-full py-6 px-10 rounded-[2.5rem] font-black text-lg transition-all flex items-center justify-center gap-4 shadow-2xl active:scale-[0.96] uppercase tracking-[0.1em] ${
-              isActive 
-                ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/20 ring-4 ring-red-500/10' 
+              isActive
+                ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/20 ring-4 ring-red-500/10'
                 : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20 ring-4 ring-emerald-500/10'
             } disabled:opacity-50`}
+            aria-label={status === 'connecting' ? 'Conectando ao chat de voz' : (isActive ? 'Encerrar sessão de voz' : 'Iniciar sessão de voz')}
+            aria-busy={status === 'connecting'}
           >
-            {status === 'connecting' ? <Loader2 size={24} className="animate-spin" /> : (isActive ? <MicOff size={24} /> : <Mic size={24} />)}
+            {status === 'connecting' ? <Loader2 size={24} className="animate-spin" aria-hidden="true" /> : (isActive ? <MicOff size={24} aria-hidden="true" /> : <Mic size={24} aria-hidden="true" />)}
             {status === 'connecting' ? 'Conectando' : (isActive ? 'Encerrar' : 'Entrar no Chat')}
           </button>
         </div>

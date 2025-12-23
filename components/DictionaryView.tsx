@@ -1,8 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Loader2, Volume2, Book, ArrowRight, Info, AlertCircle, Sparkles, Languages, Heart, HeartOff } from 'lucide-react';
-import { getDictionaryDefinition, textToSpeech, decodeAudioData } from '../services/geminiService';
+import { getDictionaryDefinition, textToSpeech } from '../services/geminiService';
+import { audioService } from '../services/audioService';
 import { DictionaryEntry, VocabItem } from '../types';
+import Skeleton from './Skeleton';
 
 interface DictionaryViewProps {
   onSaveWord?: (word: string, meaning: string) => void;
@@ -46,12 +48,7 @@ const DictionaryView: React.FC<DictionaryViewProps> = ({ onSaveWord, onBoostConf
     try {
       const audioBytes = await textToSpeech(result.word);
       if (audioBytes) {
-        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-        const buffer = await decodeAudioData(audioBytes, audioContext, 24000, 1);
-        const source = audioContext.createBufferSource();
-        source.buffer = buffer;
-        source.connect(audioContext.destination);
-        source.start();
+        await audioService.playAudio(audioBytes);
       }
     } catch (err) {
       console.error(err);
@@ -59,6 +56,13 @@ const DictionaryView: React.FC<DictionaryViewProps> = ({ onSaveWord, onBoostConf
       setAudioLoading(false);
     }
   };
+
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      audioService.stopCurrentAudio();
+    };
+  }, []);
 
   const isAlreadySaved = result ? savedWords.some(v => v.word.toLowerCase() === result.word.toLowerCase()) : false;
 
@@ -99,6 +103,20 @@ const DictionaryView: React.FC<DictionaryViewProps> = ({ onSaveWord, onBoostConf
           </form>
         </div>
 
+        {/* Loading Skeleton */}
+        {loading && (
+          <div className="space-y-8 animate-pulse">
+            <div className="bg-white rounded-[3rem] p-10 border border-slate-100">
+              <Skeleton className="h-12 w-48 mb-4" />
+              <Skeleton className="h-6 w-full" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <Skeleton className="h-48" variant="rectangular" />
+              <Skeleton className="h-48" variant="rectangular" />
+            </div>
+          </div>
+        )}
+
         {result && !loading && (
           <div className="space-y-8 animate-in slide-in-from-bottom-6 duration-700">
             {/* Main Word Card */}
@@ -107,23 +125,25 @@ const DictionaryView: React.FC<DictionaryViewProps> = ({ onSaveWord, onBoostConf
                 <div className="flex items-center gap-4">
                   <h1 className="text-5xl font-black text-slate-900 tracking-tighter">{result.word}</h1>
                   <div className="flex items-center gap-2">
-                    <button 
+                    <button
                       onClick={playPronunciation}
                       className="p-3 bg-emerald-50 text-emerald-600 rounded-full hover:bg-emerald-100 transition-all group"
+                      aria-label="Reproduzir pronúncia"
                     >
-                      {audioLoading ? <Loader2 size={24} className="animate-spin" /> : <Volume2 size={24} className="group-hover:scale-110 transition-transform" />}
+                      {audioLoading ? <Loader2 size={24} className="animate-spin" aria-hidden="true" /> : <Volume2 size={24} className="group-hover:scale-110 transition-transform" aria-hidden="true" />}
                     </button>
-                    <button 
+                    <button
                       onClick={handleSave}
                       disabled={isAlreadySaved}
                       className={`p-3 rounded-full transition-all group ${
-                        isAlreadySaved 
-                          ? 'bg-emerald-500 text-white cursor-default' 
+                        isAlreadySaved
+                          ? 'bg-emerald-500 text-white cursor-default'
                           : 'bg-slate-50 text-slate-400 hover:bg-pink-50 hover:text-pink-500'
                       }`}
-                      title={isAlreadySaved ? "Salvo no vocabulário" : "Salvar no vocabulário"}
+                      aria-label={isAlreadySaved ? "Já salvo no vocabulário" : "Salvar no vocabulário"}
+                      aria-pressed={isAlreadySaved}
                     >
-                      <Heart size={24} className={`${isAlreadySaved ? 'fill-white' : 'group-hover:fill-pink-500 transition-colors'}`} />
+                      <Heart size={24} className={`${isAlreadySaved ? 'fill-white' : 'group-hover:fill-pink-500 transition-colors'}`} aria-hidden="true" />
                     </button>
                   </div>
                 </div>
