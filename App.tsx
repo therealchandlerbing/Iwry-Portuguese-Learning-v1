@@ -160,6 +160,8 @@ const App: React.FC = () => {
   const syncIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastSyncRef = useRef<number>(0);
   const progressRef = useRef<UserProgress>(INITIAL_PROGRESS);
+  const prevCorrectionsLengthRef = useRef<number>(0);
+  const prevVocabularyLengthRef = useRef<number>(0);
 
   // Keep progressRef in sync with progress state
   useEffect(() => {
@@ -336,11 +338,27 @@ const App: React.FC = () => {
   }, [progress]);
 
   // Auto-generate flashcards from corrections and vocabulary
+  // Only processes NEW items (slice from previous length) to avoid re-iterating over all items
   useEffect(() => {
-    if (progress.correctionHistory.length > 0 || progress.vocabulary.length > 0) {
+    const currentCorrectionsLength = progress.correctionHistory.length;
+    const currentVocabularyLength = progress.vocabulary.length;
+
+    // Only process if there are NEW items (length increased)
+    const hasNewCorrections = currentCorrectionsLength > prevCorrectionsLengthRef.current;
+    const hasNewVocabulary = currentVocabularyLength > prevVocabularyLengthRef.current;
+
+    if (hasNewCorrections || hasNewVocabulary) {
+      // Only process the NEW items, not all items
+      const newCorrections = hasNewCorrections
+        ? progress.correctionHistory.slice(prevCorrectionsLengthRef.current)
+        : [];
+      const newVocabulary = hasNewVocabulary
+        ? progress.vocabulary.slice(prevVocabularyLengthRef.current)
+        : [];
+
       const newFlashcards = autoGenerateAllFlashcards(
-        progress.correctionHistory,
-        progress.vocabulary,
+        newCorrections,
+        newVocabulary,
         progress.flashcards || []
       );
 
@@ -350,6 +368,10 @@ const App: React.FC = () => {
           flashcards: [...(prev.flashcards || []), ...newFlashcards]
         }));
       }
+
+      // Update refs to current lengths
+      prevCorrectionsLengthRef.current = currentCorrectionsLength;
+      prevVocabularyLengthRef.current = currentVocabularyLength;
     }
   }, [progress.correctionHistory.length, progress.vocabulary.length]);
 

@@ -102,6 +102,10 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
     return Math.round(sum / radarData.length);
   }, [radarData]);
 
+  const flashcardsDueCount = useMemo(() => {
+    return getDueCount(progress.flashcards || []);
+  }, [progress.flashcards]);
+
   const stats = [
     { label: 'Vocabulário', value: progress.vocabulary.length, icon: <Book className="text-blue-500" size={18} />, color: 'bg-blue-50' },
     { label: 'Minutos', value: progress.totalPracticeMinutes, icon: <Zap className="text-yellow-500" size={18} />, color: 'bg-yellow-50' },
@@ -235,8 +239,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
                   <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Flashcards Hoje</p>
                   <Brain size={18} className="text-indigo-500" />
                 </div>
-                <p className="text-3xl font-black text-indigo-900">{getDueCount(progress.flashcards || [])}</p>
-                {getDueCount(progress.flashcards || []) > 0 && (
+                <p className="text-3xl font-black text-indigo-900">{flashcardsDueCount}</p>
+                {flashcardsDueCount > 0 && (
                   <p className="text-xs font-semibold text-indigo-600 mt-2 flex items-center gap-1">
                     Revisar agora <ChevronRight size={14} />
                   </p>
