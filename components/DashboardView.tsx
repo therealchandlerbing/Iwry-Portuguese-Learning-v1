@@ -7,12 +7,13 @@ import {
 } from 'recharts';
 import {
   Trophy, Zap, Book, Star, MessageCircle,
-  Target, Layers, ChevronRight, Sparkles, Volume2, Loader2, Lightbulb, Activity, Globe, AlertCircle, X, Award, Flag
+  Target, Layers, ChevronRight, Sparkles, Volume2, Loader2, Lightbulb, Activity, Globe, AlertCircle, X, Award, Flag, Brain
 } from 'lucide-react';
 import { textToSpeech } from '../services/geminiService';
 import { audioService } from '../services/audioService';
 import BadgeShowcase from './BadgeShowcase';
 import Skeleton from './Skeleton';
+import { getDueCount } from '../utils/spacedRepetition';
 
 interface DashboardViewProps {
   progress: UserProgress;
@@ -100,6 +101,10 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
     const sum = radarData.reduce((acc, curr) => acc + curr.A, 0);
     return Math.round(sum / radarData.length);
   }, [radarData]);
+
+  const flashcardsDueCount = useMemo(() => {
+    return getDueCount(progress.flashcards || []);
+  }, [progress.flashcards]);
 
   const stats = [
     { label: 'Vocabulário', value: progress.vocabulary.length, icon: <Book className="text-blue-500" size={18} />, color: 'bg-blue-50' },
@@ -217,7 +222,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
               </div>
               <button onClick={() => setMode(AppMode.LESSONS)} className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] hover:underline">Ver Mapa Completo</button>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Aulas Completas</p>
                 <p className="text-3xl font-black text-slate-900">{progress.lessonsCompleted.length}</p>
@@ -225,6 +230,21 @@ const DashboardView: React.FC<DashboardViewProps> = ({ progress, setMode, onStar
               <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Domínio Gramatical</p>
                 <p className="text-3xl font-black text-slate-900">{Math.round(totalAverage)}%</p>
+              </div>
+              <div
+                className="p-6 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-3xl border-2 border-indigo-200 cursor-pointer hover:shadow-lg transition-all hover:scale-105"
+                onClick={() => setMode(AppMode.FLASHCARDS)}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Flashcards Hoje</p>
+                  <Brain size={18} className="text-indigo-500" />
+                </div>
+                <p className="text-3xl font-black text-indigo-900">{flashcardsDueCount}</p>
+                {flashcardsDueCount > 0 && (
+                  <p className="text-xs font-semibold text-indigo-600 mt-2 flex items-center gap-1">
+                    Revisar agora <ChevronRight size={14} />
+                  </p>
+                )}
               </div>
             </div>
           </div>

@@ -20,9 +20,11 @@ import SessionSummaryModal from './components/SessionSummaryModal';
 import CorrectionLibraryView from './components/CorrectionLibraryView';
 import LearningLogView from './components/LearningLogView';
 import DictionaryView from './components/DictionaryView';
+import FlashcardView from './components/FlashcardView';
 import ErrorBoundary from './components/ErrorBoundary';
 import { analyzeSession, checkGrammar } from './services/geminiService';
 import { DEFAULT_BADGES } from './constants';
+import { autoGenerateAllFlashcards } from './utils/flashcardGenerator';
 
 interface AuthUser {
   id: number;
@@ -53,7 +55,8 @@ const INITIAL_PROGRESS: UserProgress = {
   lastSessionDate: new Date(),
   sessionCount: 0,
   generatedModules: [],
-  badges: DEFAULT_BADGES
+  badges: DEFAULT_BADGES,
+  flashcards: []
 };
 
 // Progress sync interval (5 minutes)
@@ -157,6 +160,8 @@ const App: React.FC = () => {
   const syncIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastSyncRef = useRef<number>(0);
   const progressRef = useRef<UserProgress>(INITIAL_PROGRESS);
+  const prevCorrectionsLengthRef = useRef<number>(0);
+  const prevVocabularyLengthRef = useRef<number>(0);
 
   // Keep progressRef in sync with progress state
   useEffect(() => {
@@ -239,6 +244,12 @@ const App: React.FC = () => {
       ...log,
       timestamp: new Date(log.timestamp),
       messages: log.messages.map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) }))
+    }));
+    parsed.flashcards = (parsed.flashcards || []).map((f: any) => ({
+      ...f,
+      nextReviewDate: new Date(f.nextReviewDate),
+      lastReviewed: f.lastReviewed ? new Date(f.lastReviewed) : null,
+      createdDate: new Date(f.createdDate)
     }));
     if (!parsed.badges) parsed.badges = DEFAULT_BADGES;
     else {
@@ -325,6 +336,44 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('fala_comigo_progress', JSON.stringify(progress));
   }, [progress]);
+
+  // Auto-generate flashcards from corrections and vocabulary
+  // Only processes NEW items (slice from previous length) to avoid re-iterating over all items
+  useEffect(() => {
+    const currentCorrectionsLength = progress.correctionHistory.length;
+    const currentVocabularyLength = progress.vocabulary.length;
+
+    // Only process if there are NEW items (length increased)
+    const hasNewCorrections = currentCorrectionsLength > prevCorrectionsLengthRef.current;
+    const hasNewVocabulary = currentVocabularyLength > prevVocabularyLengthRef.current;
+
+    if (hasNewCorrections || hasNewVocabulary) {
+      // Only process the NEW items, not all items
+      const newCorrections = hasNewCorrections
+        ? progress.correctionHistory.slice(prevCorrectionsLengthRef.current)
+        : [];
+      const newVocabulary = hasNewVocabulary
+        ? progress.vocabulary.slice(prevVocabularyLengthRef.current)
+        : [];
+
+      const newFlashcards = autoGenerateAllFlashcards(
+        newCorrections,
+        newVocabulary,
+        progress.flashcards || []
+      );
+
+      if (newFlashcards.length > 0) {
+        setProgress(prev => ({
+          ...prev,
+          flashcards: [...(prev.flashcards || []), ...newFlashcards]
+        }));
+      }
+
+      // Update refs to current lengths
+      prevCorrectionsLengthRef.current = currentCorrectionsLength;
+      prevVocabularyLengthRef.current = currentVocabularyLength;
+    }
+  }, [progress.correctionHistory.length, progress.vocabulary.length]);
 
   // Periodic sync to server (every 5 minutes of activity)
   useEffect(() => {
@@ -702,6 +751,8 @@ const App: React.FC = () => {
         return <LessonsView customModules={progress.generatedModules} onSaveCustomModule={handleSaveCustomModule} onStartLesson={startLesson} onStartQuiz={startQuiz} selectedTopics={progress.selectedTopics} onToggleTopic={toggleTopicFocus} lessonsCompleted={progress.lessonsCompleted} />;
       case AppMode.QUIZ:
         return activeQuizTopic ? <QuizView topic={activeQuizTopic} onComplete={() => setMode(AppMode.LESSONS)} /> : <DashboardView progress={progress} setMode={setMode} onStartLesson={startLesson} newlyEarnedBadgeIds={newlyEarnedBadgeIds} clearNewlyEarned={() => setNewlyEarnedBadgeIds([])} />;
+      case AppMode.FLASHCARDS:
+        return <FlashcardView userProgress={progress} updateProgress={(partial) => setProgress(prev => ({ ...prev, ...partial }))} setMode={setMode} />;
       case AppMode.CORRECTION_LIBRARY:
         return <CorrectionLibraryView history={progress.correctionHistory} onStartReview={(p) => startLesson(p, AppMode.REVIEW_SESSION)} />;
       case AppMode.LEARNING_LOG:

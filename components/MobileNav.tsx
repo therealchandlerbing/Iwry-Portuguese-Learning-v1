@@ -15,7 +15,8 @@ import {
   Smartphone,
   HelpCircle,
   Upload,
-  Award
+  Award,
+  Brain
 } from 'lucide-react';
 
 interface MobileNavProps {
@@ -36,6 +37,7 @@ const MobileNav: React.FC<MobileNavProps> = ({ currentMode, setMode }) => {
   const moreItems = [
     { mode: AppMode.TEXT_MODE, label: 'WhatsApp', icon: <Smartphone size={18} /> },
     { mode: AppMode.LESSONS, label: 'Lessons', icon: <BookOpen size={18} /> },
+    { mode: AppMode.FLASHCARDS, label: 'Flashcards', icon: <Brain size={18} /> },
     { mode: AppMode.QUIZ, label: 'Quiz', icon: <Award size={18} /> },
     { mode: AppMode.DICTIONARY, label: 'Dictionary', icon: <Search size={18} /> },
     { mode: AppMode.IMAGE_ANALYSIS, label: 'Photo', icon: <Camera size={18} /> },
